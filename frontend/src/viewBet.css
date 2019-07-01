@@ -1,0 +1,13 @@
+.bet-box {
+  background-color: #A9CCE3; 
+  margin-top: 10px;
+  border: 4px solid black;
+  color: white;
+  padding: 10px;
+  width:350px;
+  height:200px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 13px;
+}

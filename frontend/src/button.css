@@ -1,0 +1,47 @@
+.def-button {
+  background-color: #A9CCE3; /* Green */
+  border: none;
+  color: white;
+  padding: 10px;
+  width:200px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 13px;
+  font-family: monospace;
+  border-radius: 8px;
+}
+
+.def-button:hover {
+  background-color: #888888; /* Green */
+  font-size: 18px;
+}
+
+.def-button button {
+  background-color: #e0e0e0;
+  border: 0;
+  font-size: 1.5rem;
+  margin: 0 1px 0 0;
+  flex: 1 0 auto;
+  padding: 0;
+}
+
+.back-button {
+  background-color: #ef6c58; /* Green */
+  border: none;
+  color: black;
+  font-family: monospace;
+  padding: 10px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 11px;
+  border-radius: 20px;
+}
+
+.back-button:hover {
+  font-color: white;
+  font-weight:bold;
+  font-kerning: 3px;
+  font-size:13px;
+}
