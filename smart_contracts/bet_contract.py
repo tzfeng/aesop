@@ -147,6 +147,18 @@ def Main(operation, args):
     if operation == 'token_supply':
         return token_supply()
 
+    if operation == 'user_tab':
+        if len(args) != 1:
+            return False
+        address = args[0]
+        return user_tab(address)
+        
+    if operation == 'user_record':
+        if len(args) != 1:
+            return False
+        address = args[0]
+        return user_record(address)
+
 
 # initialize all necessary data structures to be stored onchain
 def init():
