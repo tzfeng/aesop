@@ -20,7 +20,8 @@ VAL_PREFIX = 'VAL'
 ST_PREFIX = 'ST'  # stock_ticker
 ABKEY = 'AB'  # active bets
 BL_PREFIX = 'BL'  # bets a user has participated in
-REC_PREFIX = 'REC'  # user's track record
+RC_PREFIX = 'RC'  # user's track record
+BT_PREFIX = 'BT' # bet prefix for track record storage
 
 # FR, AR, FS, AS, FC, AC, UD, MA, TP, SE
 # FR_PREFIX = 'FR' # for rep
@@ -146,7 +147,7 @@ def Main(operation, args):
 
     if operation == 'token_supply':
         return token_supply()
-
+        
     if operation == 'user_tab':
         if len(args) != 1:
             return False
@@ -158,6 +159,9 @@ def Main(operation, args):
             return False
         address = args[0]
         return user_record(address)
+        
+    if operation == 'active_bets':
+        return active_bets()
 
 
 # initialize all necessary data structures to be stored onchain
@@ -170,12 +174,12 @@ def init():
         Put(ctx, BETKEY, BETID)
         Notify(['BETID inited'])
 
-        supply = 500000000 * FACTOR
+        supply = 100000000 * FACTOR
         Put(ctx, SUPPKEY, supply)
         Notify(['Token supply tracker inited'])
 
-        # subtract_bank(token_owner, supply)
-        # Notify(['Rep tokens transferred to contract'])
+        subtract_bank(token_owner, supply)
+        Notify(['Rep tokens transferred to contract'])
 
         Notify(['Successfully inited'])
         return True
@@ -191,21 +195,19 @@ def token_supply():
 
 
 # used for all bet-specific maps
-def add_map(key, value, prefix):
-    bet = Get(ctx, BETKEY)
+def add_map(bet, key, value, prefix):
     map_info = Get(ctx, concatkey(bet, prefix))
     maps = Deserialize(map_info)
 
     # add data
     maps[key] = value
-    map_Info = Serialize(maps)
+    map_info = Serialize(maps)
     Put(ctx, concatkey(bet, prefix), map_info)
     Notify(['add_map', key, value])
     return True
 
 
-def add_user_list(element, prefix):
-    bet = Get(ctx, BETKEY)
+def add_user_list(bet, element, prefix):
     list_info = Get(ctx, concatkey(bet, prefix))
     lists = Deserialize(list_info)
 
@@ -230,13 +232,41 @@ def add_user_list(element, prefix):
 # used for active bets
 def remove_list(element):
     ab_info = Get(ctx, ABKEY)
-    ab = Deserialize(ab_info)
-
-    ab1 = ab.remove(element)
-    ab1_info = Serialize(ab1)
-    Put(ctx, ABKEY, ab1_info)
-    Notify(["remove_list", element])
-    return True
+    if ab_info:
+        ab = Deserialize(ab_info)
+    else:
+        Notify(['Active bet list is empty before remove'])
+        return False
+    
+    # find the index of the element to remove
+    index = binary_search(ab, element)
+    ab.remove(index)
+    
+    ab_info = Serialize(ab)
+    if ab_info:
+        Put(ctx, ABKEY, ab_info)
+        Notify(["remove_list", element])
+        return True
+    else:
+        Delete(ctx, ABKEY)
+        Notify(['Active bet list is empty after remove'])
+        return False
+        
+def binary_search(lis, want):
+    lo = 0
+    hi = len(lis) - 1
+    
+    while lo <= hi:
+        mid = lo + (hi - lo) / 2
+        
+        if lis[mid] < want:
+            lo = mid + 1
+            
+        elif lis[mid] > want:
+            hi = mid - 1
+            
+        else:
+            return mid
 
 
 # add to address's wallet
@@ -360,9 +390,12 @@ def purchase_bank(address, amount):
 
     else:
         # check if user has been created. if not, create the user
-        # user will not have access to purchase_bank until user is created. therefore all_users is populated
         user_info = Get(ctx, USERKEY)
-        all_users = Deserialize(user_info)
+        if user_info:
+            all_users = Deserialize(user_info)
+        else:
+            Notify(['No existing users'])
+            create_user(address)
 
         if address not in all_users:
             Notify(['not a registered user'])
@@ -466,6 +499,8 @@ def view_wallet(address):
     else:
         params = [byte_address]
         wallet_balance = RepContract("balanceOf", params)
+        if wallet_balance == '':
+            wallet_balance = 0
         Notify(['Wallet balance', wallet_balance])
         return wallet_balance
 
@@ -479,7 +514,7 @@ def dummy_oracle_init():
 # dummy oracle function to "get" a current stock price
 def dummy_oracle_current():
     Notify(['Dummy current price'])
-    return 105 * FACTOR
+    return 100 * FACTOR
 
 
 # change timing to month/date/yr + exceptions
@@ -609,15 +644,17 @@ def create_bet(address, amount_staked, stock_ticker, sign, margin, seconds):
         Notify(['User bet list updated'])
 
         # update winners' track record
-        record_info = Get(ctx, concatkey(address, REC_PREFIX))
+        record_info = Get(ctx, concatkey(address, RC_PREFIX))
+        Notify(['This part is ok 1'])
         if record_info:
             record_map = Deserialize(record_info)
         else:
             record_map = {}
-
-        record_map[bet] = 'In progress'
+        Notify(['This part is ok 2'])
+        # 1 means bet in progress
+        record_map[concatkey(bet, BT_PREFIX)] = 1 
         record_info = Serialize(record_map)
-        Put(ctx, concatkey(address, REC_PREFIX), record_info)
+        Put(ctx, concatkey(address, RC_PREFIX), record_info)
 
         Notify(['User track record updated'])
 
@@ -700,8 +737,8 @@ def vote(bet, address, amount_staked, for_against):
         # check if user agrees or disagrees with bet
         if for_against:
             # maps user to amount staked
-            add_map(address, new_amount, FM_PREFIX)
-            add_user_list(address, FL_PREFIX)
+            add_map(bet, address, new_amount, FM_PREFIX)
+            add_user_list(bet, address, FL_PREFIX)
 
             # update for staked
             val_list[2] += new_amount
@@ -715,8 +752,8 @@ def vote(bet, address, amount_staked, for_against):
         else:
             # if people have already voted against this bet, take this action:
             if Get(ctx, concatkey(bet, AL_PREFIX)):
-                add_map(address, new_amount, AM_PREFIX)
-                add_user_list(address, AL_PREFIX)
+                add_map(bet, address, new_amount, AM_PREFIX)
+                add_user_list(bet, address, AL_PREFIX)
                 Notify(['Existing against_map and against_list'])
 
             # if not, create, update, and store against map and list for this bet
@@ -770,15 +807,16 @@ def vote(bet, address, amount_staked, for_against):
         Notify(['User bet list updated'])
 
         # update winners' track record
-        record_info = Get(ctx, concatkey(address, REC_PREFIX))
+        record_info = Get(ctx, concatkey(address, RC_PREFIX))
         if record_info:
             record_map = Deserialize(record_info)
         else:
             record_map = {}
-
-        record_map[bet] = 'In progress'
+        
+        # bet in progress
+        record_map[concatkey(bet, BT_PREFIX)] = 1
         record_info = Serialize(record_map)
-        Put(ctx, concatkey(address, REC_PREFIX), record_info)
+        Put(ctx, concatkey(address, RC_PREFIX), record_info)
 
         Notify(['User track record updated'])
 
@@ -804,11 +842,75 @@ def distribute(bet, result):
         # FR, AR, FS, AS, FC, AC, UD, MA, TP, SE
         val_info = Get(ctx, concatkey(bet, VAL_PREFIX))
         val_list = Deserialize(val_info)
-
+        
+        # case in which bet is a draw
+        if result == 0:
+            Notify(['The bet was a draw'])
+            # if this is an active bet, the bank map exists
+            bank_info = Get(ctx, BANKEY)
+            bank_map = Deserialize(bank_info)
+    
+            # if this is an active bet, the for map and list must exist
+            fm_info = Get(ctx, concatkey(bet, FM_PREFIX))
+            for_map = Deserialize(fm_info)
+    
+            fl_info = Get(ctx, concatkey(bet, FL_PREFIX))
+            for_list = Deserialize(fl_info)
+            
+            am_info = Get(ctx, concatkey(bet, AM_PREFIX))
+            against_map = Deserialize(am_info)
+    
+            al_info = Get(ctx, concatkey(bet, AL_PREFIX))
+            against_list = Deserialize(al_info)
+    
+            # return money to for voters
+            for address in for_list:
+                bank_map[address] += for_map[address]
+                add_bank(address, for_map[address])
+    
+                # update participants' track record
+                record_info = Get(ctx, concatkey(address, RC_PREFIX))
+                record_map = Deserialize(record_info)
+                # 0 means bet is a draw
+                record_map[concatkey(bet, BT_PREFIX)] = 0
+                record_info = Serialize(record_map)
+                Put(ctx, concatkey(address, RC_PREFIX), record_info)
+            
+            # return money to against voters   
+            for address in against_list:
+                bank_map[address] += against_map[address]
+                add_bank(address, against_map[address])
+    
+                # update participants' track record
+                record_info = Get(ctx, concatkey(address, RC_PREFIX))
+                record_map = Deserialize(record_info)
+                # 0 means bet is a draw
+                record_map[concatkey(bet, BT_PREFIX)] = 0
+                record_info = Serialize(record_map)
+                Put(ctx, concatkey(address, RC_PREFIX), record_info)
+    
+            Notify(['Money has been returned to voters, bank_map and wallet updated'])
+    
+            # store bank map
+            bank_info = Serialize(bank_map)
+            Put(ctx, BANKEY, bank_info)
+    
+            # delete used data structures
+            # Delete(ctx, concatkey(bet, FM_PREFIX))
+            # Delete(ctx, concatkey(bet, AM_PREFIX))
+            # Delete(ctx, concatkey(bet, FL_PREFIX))
+            # Delete(ctx, concatkey(bet, AL_PREFIX))
+            # Delete(ctx, concatkey(bet, ST_PREFIX))
+            # Delete(ctx, concatkey(bet, VAL_PREFIX))
+            # remove_list(bet)
+            Notify(['Data structures removed, bet incomplete', bet])
+    
+            return False
+        
         # check result and set data structures accordingly
         # if this is an active bet, these maps and lists should all exist.
         # payout function will first check if there are stakes on both sides of the bet before distributing
-        if result:
+        elif result > 0:
             wm_info = Get(ctx, concatkey(bet, FM_PREFIX))
             winners_map = Deserialize(wm_info)
 
@@ -852,16 +954,17 @@ def distribute(bet, result):
         for address in winners_list:
             # distribute and update winners' rep, bank, wallet
             winnings = winners_map[address] + winners_map[address] * lose_stake / win_stake
-            rep_map[address] += winnings
+            rep_map[address] += winners_map[address] * lose_stake / win_stake
             bank_map[address] += winnings
             add_bank(address, winnings)
 
             # update winners' track record. already initialized in vote/create
-            record_info = Get(ctx, concatkey(address, REC_PREFIX))
+            record_info = Get(ctx, concatkey(address, RC_PREFIX))
             record_map = Deserialize(record_info)
-            record_map[bet] = 'Win'
+            # 2 means bet is a victory
+            record_map[concatkey(bet, BT_PREFIX)] = 2
             record_info = Serialize(record_map)
-            Put(ctx, concatkey(address, REC_PREFIX), record_info)
+            Put(ctx, concatkey(address, RC_PREFIX), record_info)
 
         Notify(['Winner rep, bank, wallet, and record updated'])
 
@@ -870,12 +973,12 @@ def distribute(bet, result):
             rep_map[address] -= losers_map[address]
 
             # update losers' track record
-            record_info = Get(ctx, concatkey(address, REC_PREFIX))
+            record_info = Get(ctx, concatkey(address, RC_PREFIX))
             record_map = Deserialize(record_info)
-
-            record_map[bet] = 'Loss'
+            # -1 means bet is a loss
+            record_map[concatkey(bet, BT_PREFIX)] = -1
             record_info = Serialize(record_map)
-            Put(ctx, concatkey(address, REC_PREFIX), record_info)
+            Put(ctx, concatkey(address, RC_PREFIX), record_info)
 
         Notify(['Loser rep updated'])
 
@@ -912,23 +1015,33 @@ def check_result(bet):
         sign = val_list[6]
         target_price = val_list[8]
         current_price = dummy_oracle_current()
+        
+        # get the margin of the bet
+        val_info = Get(ctx, concatkey(bet, VAL_PREFIX))
+        val_list = Deserialize(val_info)
+        margin = val_list[7]
+        
+        if margin == 0:
+            if current_price == target_price:
+                Notify(['No price change'])
+                return 0
 
         # case where user bets that stock will rise
         if sign > 0:
             if current_price >= target_price:
                 Notify(['For side correctly predicted rise'])
-                return True
+                return 1
             else:
                 Notify(['Against side correctly predicted fall'])
-                return False
+                return -1
         # case where user bets that stock will fall
         if sign < 0:
             if current_price <= target_price:
                 Notify(['For side correctly predicted fall'])
-                return True
+                return 1
             else:
                 Notify(['Against side correctly predicted rise'])
-                return False
+                return -1
         else:
             Notify(['Stock was not predicted to make any movement'])
             return False
@@ -990,11 +1103,12 @@ def payout(bet):
             add_bank(address, for_map[address])
 
             # update participants' track record
-            record_info = Get(ctx, concatkey(address, REC_PREFIX))
+            record_info = Get(ctx, concatkey(address, RC_PREFIX))
             record_map = Deserialize(record_info)
-            record_map[bet] = 'Draw'
+            # 0 means bet is a draw
+            record_map[concatkey(bet, BT_PREFIX)] = 0
             record_info = Serialize(record_map)
-            Put(ctx, concatkey(address, REC_PREFIX), record_info)
+            Put(ctx, concatkey(address, RC_PREFIX), record_info)
 
         Notify(['Money has been returned to voters, bank_map and wallet updated'])
 
@@ -1067,7 +1181,7 @@ def bet_info(bet):
         Notify(['probability of bet', prob])
 
         # add current price
-        return [stock_ticker, target_price, sign * margin, for_rep, against_rep, for_avg_rep, against_avg_rep,
+        return [bet, stock_ticker, target_price, sign * margin, for_rep, against_rep, for_avg_rep, against_avg_rep,
                 for_staked, against_staked, prob]
 
 
@@ -1160,12 +1274,21 @@ def user_record(address):
         return False
 
     # if the user has participated in bets, he/she has a track record_info
-    record_info = Get(ctx, concatkey(address, REC_PREFIX))
+    record_info = Get(ctx, concatkey(address, RC_PREFIX))
     record_map = Deserialize(record_info)
 
     # create returnable list of user's record
     record_list = []
     for bet in bet_list:
-        record_list.append(record_map[bet])
+        record_list.append(record_map[concatkey(bet, BT_PREFIX)])
 
     return [bet_list, record_list]
+    
+def active_bets():
+    ab_info = Get(ctx, ABKEY)
+    if not ab_info:
+        Notify(['Active bet list is empty'])
+        return False
+    else:
+        active_bets = Deserialize(ab_info)
+        return active_bets
