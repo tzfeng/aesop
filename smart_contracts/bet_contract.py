@@ -22,6 +22,7 @@ ABKEY = 'AB'  # active bets
 BL_PREFIX = 'BL'  # bets a user has participated in
 RC_PREFIX = 'RC'  # user's track record
 BT_PREFIX = 'BT' # bet prefix for track record storage
+AB_PREFIX = 'AB' # bet prefix for active bets
 
 # FR, AR, FS, AS, FC, AC, UD, MA, TP, SE
 # FR_PREFIX = 'FR' # for rep
@@ -139,9 +140,6 @@ def Main(operation, args):
         bet = args[0]
         return bet_info(bet)
 
-    if operation == 'feed':
-        return feed()
-
     if operation == 'users':
         return users()
 
@@ -174,11 +172,7 @@ def init():
         Put(ctx, BETKEY, BETID)
         Notify(['BETID inited'])
 
-        supply = 100000000 * FACTOR
-        Put(ctx, SUPPKEY, supply)
-        Notify(['Token supply tracker inited'])
-
-        subtract_bank(token_owner, supply)
+        subtract_bank(token_owner, 10000000 * FACTOR)
         Notify(['Rep tokens transferred to contract'])
 
         Notify(['Successfully inited'])
@@ -191,7 +185,9 @@ def concatkey(str1, str2):
 
 
 def token_supply():
-    return Get(ctx, SUPPKEY)
+    supply = Get(ctx, SUPPKEY)
+    Notify(['token supply', supply])
+    return supply
 
 
 # used for all bet-specific maps
@@ -285,12 +281,16 @@ def add_bank(address, amount):
         to_acct = byte_address
 
         supply = Get(ctx, SUPPKEY)
-        supply -= amount
-        Put(ctx, SUPPKEY, supply)
-        Notify(['Supply decreased by', amount])
+        if supply < amount:
+            Notify(['Not enough tokens in supply'])
+            return False
+        else:
+            supply -= amount
+            Put(ctx, SUPPKEY, supply)
+            Notify(['Supply decreased by', amount])
 
-        params = [from_acct, to_acct, amount]
-        return RepContract('transfer', params)
+            params = [from_acct, to_acct, amount]
+            return RepContract('transfer', params)
 
 
 # subtract from address's wallet
@@ -514,7 +514,7 @@ def dummy_oracle_init():
 # dummy oracle function to "get" a current stock price
 def dummy_oracle_current():
     Notify(['Dummy current price'])
-    return 100 * FACTOR
+    return 105 * FACTOR
 
 
 # change timing to month/date/yr + exceptions
@@ -761,7 +761,7 @@ def vote(bet, address, amount_staked, for_against):
                 against_map = {}
                 against_list = []
 
-                against_map[address] = rep_map[address]
+                against_map[address] = bank_map[address]
                 against_list.append(address)
 
                 am_info = Serialize(against_map)
@@ -970,6 +970,8 @@ def distribute(bet, result):
 
         # only need to update losers' rep - bank and wallet updated already during staking
         for address in losers_list:
+            Notify(['11', address, rep_map[address]])
+            Notify(['22', address, losers_map[address]])
             rep_map[address] -= losers_map[address]
 
             # update losers' track record
@@ -1183,26 +1185,6 @@ def bet_info(bet):
         # add current price
         return [bet, stock_ticker, target_price, sign * margin, for_rep, against_rep, for_avg_rep, against_avg_rep,
                 for_staked, against_staked, prob]
-
-
-# returns bet info for all active bets, as a map
-def feed():
-    # check if active bet list is populated/exists
-    ab_info = Get(ctx, ABKEY)
-    if ab_info:
-        active_bets = Deserialize(ab_info)
-    else:
-        Notify(['There are no active bets'])
-        return False
-
-    all_bet_info = {}
-
-    # store all bet info lists in a new map, which will be returned
-    for bet in active_bets:
-        all_bet_info[bet] = bet_info(bet)
-    Notify(['Feed info successfully created'])
-
-    return all_bet_info
 
 
 # returns addresses of all registered users
