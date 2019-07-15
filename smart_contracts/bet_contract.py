@@ -21,6 +21,7 @@ ST_PREFIX = 'ST'  # stock_ticker
 ABKEY = 'AB'  # active bets
 BL_PREFIX = 'BL'  # bets a user has participated in
 RC_PREFIX = 'RC'  # user's track record
+PT_PREFIX = 'PT' # user's profit per bet
 BT_PREFIX = 'BT' # bet prefix for track record storage
 AB_PREFIX = 'AB' # bet prefix for active bets
 
@@ -96,15 +97,16 @@ def Main(operation, args):
 
     # will change seconds to an actual date, depending on oracle
     if operation == 'create_bet':
-        if len(args) != 6:
+        if len(args) != 7:
             return False
         address = args[0]
         amount_staked = args[1]
         stock_ticker = args[2]
-        sign = args[3]
-        margin = args[4]
-        seconds = args[5]
-        return create_bet(address, amount_staked, stock_ticker, sign, margin, seconds)
+        init_price = args[3]
+        sign = args[4]
+        margin = args[5]
+        seconds = args[6]
+        return create_bet(address, amount_staked, stock_ticker, init_price, sign, margin, seconds)
 
     if operation == 'vote':
         if len(args) != 4:
@@ -123,16 +125,18 @@ def Main(operation, args):
         return distribute(bet, result)
 
     if operation == 'check_result':
-        if len(args) != 1:
+        if len(args) != 2:
             return False
         bet = args[0]
-        return check_result(bet)
+        current_price = args[1]
+        return check_result(bet, current_price)
 
     if operation == 'payout':
         if len(args) != 1:
             return False
         bet = args[0]
-        return payout(bet)
+        current_price = args[1]
+        return payout(bet, current_price)
 
     if operation == 'bet_info':
         if len(args) != 1:
@@ -519,7 +523,7 @@ def dummy_oracle_current():
 
 # change timing to month/date/yr + exceptions
 # creates a bet, storing necessary info onchain and putting the user on the "for" side of the bet
-def create_bet(address, amount_staked, stock_ticker, sign, margin, seconds):
+def create_bet(address, amount_staked, stock_ticker, init_price, sign, margin, seconds):
     byte_address = Base58ToAddress(address)
     assert (CheckWitness(byte_address))
 
@@ -577,7 +581,6 @@ def create_bet(address, amount_staked, stock_ticker, sign, margin, seconds):
         Notify(['Data structures successfully inited'])
 
         # update data
-        init_price = dummy_oracle_init()
         target_price = init_price + init_price * sign * margin / 100
         for_map[address] = new_amount
         for_list.append(address)
@@ -645,18 +648,28 @@ def create_bet(address, amount_staked, stock_ticker, sign, margin, seconds):
 
         # update winners' track record
         record_info = Get(ctx, concatkey(address, RC_PREFIX))
-        Notify(['This part is ok 1'])
         if record_info:
             record_map = Deserialize(record_info)
         else:
             record_map = {}
-        Notify(['This part is ok 2'])
+            
         # 1 means bet in progress
         record_map[concatkey(bet, BT_PREFIX)] = 1 
         record_info = Serialize(record_map)
         Put(ctx, concatkey(address, RC_PREFIX), record_info)
-
         Notify(['User track record updated'])
+        
+        profit_info = Get(ctx, concatkey(address, PT_PREFIX))
+        if profit_info:
+            profit_map = Deserialize(profit_info)
+        else:
+            profit_map = {}
+        
+        # 0 profit so far for this bet because the bet is still ongoing
+        profit_map[concatkey(bet, BT_PREFIX)] = 0
+        profit_info = Serialize(profit_map)
+        Put(ctx, concatkey(address, PT_PREFIX), profit_info)
+        Notify(['User profit per bet updated'])
 
         # update current bet number and put back onchain
         new_bet = bet + 1
@@ -803,10 +816,9 @@ def vote(bet, address, amount_staked, for_against):
         bet_list.append(bet)
         bl_info = Serialize(bet_list)
         Put(ctx, concatkey(address, BL_PREFIX), bl_info)
-
         Notify(['User bet list updated'])
 
-        # update winners' track record
+        # update track record
         record_info = Get(ctx, concatkey(address, RC_PREFIX))
         if record_info:
             record_map = Deserialize(record_info)
@@ -817,8 +829,21 @@ def vote(bet, address, amount_staked, for_against):
         record_map[concatkey(bet, BT_PREFIX)] = 1
         record_info = Serialize(record_map)
         Put(ctx, concatkey(address, RC_PREFIX), record_info)
-
         Notify(['User track record updated'])
+        
+        # update profit per bet info
+        profit_info = Get(ctx, concatkey(address, PT_PREFIX))
+        if profit_info:
+            profit_map = Deserialize(profit_info)
+        else:
+            profit_map = {}
+        
+        # 0 profit so far for this bet because the bet is still ongoing
+        profit_map[concatkey(bet, BT_PREFIX)] = 0
+        profit_info = Serialize(profit_map)
+        Put(ctx, concatkey(address, PT_PREFIX), profit_info)
+        Notify(['User profit per bet updated'])
+        
 
         return True
 
@@ -888,6 +913,8 @@ def distribute(bet, result):
                 record_map[concatkey(bet, BT_PREFIX)] = 0
                 record_info = Serialize(record_map)
                 Put(ctx, concatkey(address, RC_PREFIX), record_info)
+                
+            # profit for both for and against voters stays 0 for case of a draw
     
             Notify(['Money has been returned to voters, bank_map and wallet updated'])
     
@@ -965,13 +992,19 @@ def distribute(bet, result):
             record_map[concatkey(bet, BT_PREFIX)] = 2
             record_info = Serialize(record_map)
             Put(ctx, concatkey(address, RC_PREFIX), record_info)
+            
+            # update participants' profit per bet
+            profit_info = Get(ctx, concatkey(address, PT_PREFIX))
+            profit_map = Deserialize(profit_info)
+            # winners have positive profit proportional to their stake and total loser stake
+            profit_map[concatkey(bet, BT_PREFIX)] += winners_map[address] * lose_stake / win_stake
+            profit_info = Serialize(profit_map)
+            Put(ctx, concatkey(address, PT_PREFIX), profit_info)
 
         Notify(['Winner rep, bank, wallet, and record updated'])
 
         # only need to update losers' rep - bank and wallet updated already during staking
         for address in losers_list:
-            Notify(['11', address, rep_map[address]])
-            Notify(['22', address, losers_map[address]])
             rep_map[address] -= losers_map[address]
 
             # update losers' track record
@@ -981,6 +1014,14 @@ def distribute(bet, result):
             record_map[concatkey(bet, BT_PREFIX)] = -1
             record_info = Serialize(record_map)
             Put(ctx, concatkey(address, RC_PREFIX), record_info)
+            
+            # update participants' profit per bet
+            profit_info = Get(ctx, concatkey(address, PT_PREFIX))
+            profit_map = Deserialize(profit_info)
+            # losers have net loss equal to their stake
+            profit_map[concatkey(bet, BT_PREFIX)] -= losers_map[address]
+            profit_info = Serialize(profit_map)
+            Put(ctx, concatkey(address, PT_PREFIX), profit_info)
 
         Notify(['Loser rep updated'])
 
@@ -995,7 +1036,7 @@ def distribute(bet, result):
 
 
 # checks the result of the bet's prediction
-def check_result(bet):
+def check_result(bet, current_price):
     # check if active bet list is populated/exists
     ab_info = Get(ctx, ABKEY)
     if ab_info:
@@ -1016,7 +1057,6 @@ def check_result(bet):
 
         sign = val_list[6]
         target_price = val_list[8]
-        current_price = dummy_oracle_current()
         
         # get the margin of the bet
         val_info = Get(ctx, concatkey(bet, VAL_PREFIX))
@@ -1050,7 +1090,7 @@ def check_result(bet):
 
 
 # carries out distribute function given the current price, uses check_result
-def payout(bet):
+def payout(bet, current_price):
     # check if active bet list is populated/exists
     ab_info = Get(ctx, ABKEY)
     if ab_info:
@@ -1071,7 +1111,7 @@ def payout(bet):
     am_info = Get(ctx, concatkey(bet, AM_PREFIX))
     if am_info:
         Notify(['There are voters on both sides of the bet'])
-        final_result = check_result(bet)
+        final_result = check_result(bet, current_price)
         distribute(bet, final_result)
 
         # delete onchain data structures specific to a bet
@@ -1255,16 +1295,21 @@ def user_record(address):
         Notify(['User has not participated in any bets'])
         return False
 
-    # if the user has participated in bets, he/she has a track record_info
+    # if the user has participated in bets, he/she has a track record_info, as well as profit info
     record_info = Get(ctx, concatkey(address, RC_PREFIX))
     record_map = Deserialize(record_info)
+    profit_info = Get(ctx, concatkey(address, PT_PREFIX))
+    profit_map = Deserialize(profit_info)
 
     # create returnable list of user's record
     record_list = []
+    profit_list = []
+    
     for bet in bet_list:
         record_list.append(record_map[concatkey(bet, BT_PREFIX)])
+        profit_list.append(profit_map[concatkey(bet, BT_PREFIX)])
 
-    return [bet_list, record_list]
+    return [bet_list, record_list, profit_list]
     
 def active_bets():
     ab_info = Get(ctx, ABKEY)
