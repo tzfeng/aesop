@@ -24,6 +24,7 @@ RC_PREFIX = 'RC'  # user's track record
 PT_PREFIX = 'PT' # user's profit per bet
 BT_PREFIX = 'BT' # bet prefix for track record storage
 AB_PREFIX = 'AB' # bet prefix for active bets
+SD_PREFIX = 'SD' # standard deviation of user's bet history
 
 # FR, AR, FS, AS, FC, AC, UD, MA, TP, SE
 # FR_PREFIX = 'FR' # for rep
@@ -105,8 +106,8 @@ def Main(operation, args):
         init_price = args[3]
         sign = args[4]
         margin = args[5]
-        seconds = args[6]
-        return create_bet(address, amount_staked, stock_ticker, init_price, sign, margin, seconds)
+        date = args[6]
+        return create_bet(address, amount_staked, stock_ticker, init_price, sign, margin, date)
 
     if operation == 'vote':
         if len(args) != 4:
@@ -132,7 +133,7 @@ def Main(operation, args):
         return check_result(bet, current_price)
 
     if operation == 'payout':
-        if len(args) != 1:
+        if len(args) != 2:
             return False
         bet = args[0]
         current_price = args[1]
@@ -172,7 +173,7 @@ def init():
         Notify(['Already initialized'])
         return False
     else:
-        BETID = 0
+        BETID = 1
         Put(ctx, BETKEY, BETID)
         Notify(['BETID inited'])
 
@@ -351,7 +352,7 @@ def create_user(address):
             rep_map = {}
 
         # update and put rep map
-        rep_map[address] = 100 * FACTOR
+        rep_map[address] = (100 + 100000000) * FACTOR
         rep_info = Serialize(rep_map)
         Put(ctx, REPKEY, rep_info)
         Notify(['rep_map updated'])
@@ -445,8 +446,8 @@ def view_rep(address):
     else:
         rep_info = Get(ctx, REPKEY)
         rep_map = Deserialize(rep_info)
-        rep_balance = rep_map[address]
-        Notify(['Rep balance', rep_balance])
+        rep_balance = rep_map[address] 
+        Notify([rep_balance])
         return rep_balance
 
 
@@ -475,7 +476,7 @@ def view_bank(address):
         bank_info = Get(ctx, BANKEY)
         bank_map = Deserialize(bank_info)
         bank_balance = bank_map[address]
-        Notify(['Bank balance', bank_balance])
+        Notify([bank_balance])
         return bank_balance
 
 
@@ -505,7 +506,7 @@ def view_wallet(address):
         wallet_balance = RepContract("balanceOf", params)
         if wallet_balance == '':
             wallet_balance = 0
-        Notify(['Wallet balance', wallet_balance])
+        Notify([wallet_balance])
         return wallet_balance
 
 
@@ -523,7 +524,7 @@ def dummy_oracle_current():
 
 # change timing to month/date/yr + exceptions
 # creates a bet, storing necessary info onchain and putting the user on the "for" side of the bet
-def create_bet(address, amount_staked, stock_ticker, init_price, sign, margin, seconds):
+def create_bet(address, amount_staked, stock_ticker, init_price, sign, margin, date):
     byte_address = Base58ToAddress(address)
     assert (CheckWitness(byte_address))
 
@@ -600,7 +601,7 @@ def create_bet(address, amount_staked, stock_ticker, init_price, sign, margin, s
         val_list.append(sign)
         val_list.append(margin)
         val_list.append(target_price)
-        val_list.append(seconds)
+        val_list.append(date)
         Notify(['val_list successfully populated'])
 
         # prepare data structures for storage
@@ -688,8 +689,8 @@ def create_bet(address, amount_staked, stock_ticker, init_price, sign, margin, s
         # result checking func handled by oracle
         # for testing only: use payout on specific bet, manually remember bet IDs
         # figure out how to automate payout as soon as bet is created.
-
-        return True
+        Notify([bet])
+        return bet
 
 
 # votes on a side of the bet and immediately updates relevant data structures
@@ -1109,6 +1110,7 @@ def payout(bet, current_price):
     # for the real interface, this check will occur after voting period elapses.
     # for the test, this check occurs immediately when payout is called.
     am_info = Get(ctx, concatkey(bet, AM_PREFIX))
+    Notify(['111 still working'])
     if am_info:
         Notify(['There are voters on both sides of the bet'])
         final_result = check_result(bet, current_price)
@@ -1138,6 +1140,8 @@ def payout(bet, current_price):
 
         fl_info = Get(ctx, concatkey(bet, FL_PREFIX))
         for_list = Deserialize(fl_info)
+        
+        Notify(['222 We made it'])
 
         # return money to voters
         for address in for_list:
@@ -1192,11 +1196,6 @@ def bet_info(bet):
         val_info = Get(ctx, concatkey(bet, VAL_PREFIX))
         val_list = Deserialize(val_info)
 
-        fm_info = Get(ctx, concatkey(bet, FM_PREFIX))
-        for_map = Deserialize(fm_info)
-        am_info = Get(ctx, concatkey(bet, AM_PREFIX))
-        against_map = Deserialize(am_info)
-
         stock_ticker = Get(ctx, concatkey(bet, ST_PREFIX))
 
         # retrieve values of interest for this bet from val_list
@@ -1209,7 +1208,7 @@ def bet_info(bet):
         sign = val_list[6]
         margin = val_list[7]
         target_price = val_list[8]
-        seconds = val_list[9]
+        date = val_list[9]
         # current price = use oracle
 
         # calculate avg rep on both sides of bet. will be accurate to two decimal places
@@ -1222,9 +1221,10 @@ def bet_info(bet):
         prob = FACTOR * for_staked / (for_staked + against_staked) * 100
         Notify(['probability of bet', prob])
 
-        # add current price
+        Notify([bet, stock_ticker, target_price, sign * margin, for_rep, against_rep, for_avg_rep, against_avg_rep,
+                for_staked, against_staked, date, prob])
         return [bet, stock_ticker, target_price, sign * margin, for_rep, against_rep, for_avg_rep, against_avg_rep,
-                for_staked, against_staked, prob]
+                for_staked, against_staked, date, prob]
 
 
 # returns addresses of all registered users
@@ -1232,7 +1232,8 @@ def users():
     user_info = Get(ctx, USERKEY)
     if user_info:
         all_users = Deserialize(user_info)
-
+        
+        Notify([all_users])
         return all_users
     else:
         Notify(['There are no users'])
@@ -1263,7 +1264,8 @@ def user_tab(address):
     total_rep = view_rep(address)
     total_bank = view_bank(address)
     total_wallet = view_wallet(address)
-
+    
+    Notify([total_rep, total_bank, total_wallet])
     return [total_rep, total_bank, total_wallet]
 
 
@@ -1308,7 +1310,8 @@ def user_record(address):
     for bet in bet_list:
         record_list.append(record_map[concatkey(bet, BT_PREFIX)])
         profit_list.append(profit_map[concatkey(bet, BT_PREFIX)])
-
+    
+    Notify([bet_list, record_list, profit_list])
     return [bet_list, record_list, profit_list]
     
 def active_bets():
@@ -1318,4 +1321,5 @@ def active_bets():
         return False
     else:
         active_bets = Deserialize(ab_info)
+        Notify([active_bets])
         return active_bets
