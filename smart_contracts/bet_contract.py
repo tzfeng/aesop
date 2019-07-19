@@ -103,11 +103,11 @@ def Main(operation, args):
         address = args[0]
         amount_staked = args[1]
         stock_ticker = args[2]
-        init_price = args[3]
-        sign = args[4]
-        margin = args[5]
-        date = args[6]
-        return create_bet(address, amount_staked, stock_ticker, init_price, sign, margin, date)
+        sign = args[3]
+        margin = args[4]
+        date = args[5]
+        init_price = args[6]
+        return create_bet(address, amount_staked, stock_ticker, sign, margin, date, init_price)
 
     if operation == 'vote':
         if len(args) != 4:
@@ -524,7 +524,7 @@ def dummy_oracle_current():
 
 # change timing to month/date/yr + exceptions
 # creates a bet, storing necessary info onchain and putting the user on the "for" side of the bet
-def create_bet(address, amount_staked, stock_ticker, init_price, sign, margin, date):
+def create_bet(address, amount_staked, stock_ticker, sign, margin, date, init_price):
     byte_address = Base58ToAddress(address)
     assert (CheckWitness(byte_address))
 
