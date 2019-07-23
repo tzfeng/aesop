@@ -44,13 +44,12 @@ const fetchScEventsByBlock = async function (height) {
     return events;
 }
 
-const syncBet = async function () {
+exports.syncBet = async function (current_hash) {
 
     const height = await fetchLastBlock();
     
     const notifyList = await fetchScEventsByBlock(height);
     
-    const betEvents = [];
 
     if (notifyList.length > 0) {
         for (const notify of notifyList) {
@@ -62,22 +61,21 @@ const syncBet = async function () {
             if (contractHash = config.myContractHash) {
                 const firstval = Ont.utils.hexstr2str(states[0]);
                 if (firstval === 'bet') {
-                    // need to parse hex number into base 10
-                    const bet = parseInt(states[1], 16);                  
-                    const address = Ont.utils.hexstr2str(states[2]);
-                    const time = moment().format('YYYY-MM-DD HH:mm:ss');
-                    const val = [bet, address, time];
-                    console.log("check out this info" + JSON.stringify(val));
-                    betEvents.push(val);
+                    if (notify.TxHash == current_hash) {
+                        const bet = parseInt(states[1], 16);                  
+                        const address = Ont.utils.hexstr2str(states[2]);
+                        const time = moment().format('YYYY-MM-DD');
+                        const val = [bet, address, time];
+                        console.log("check out this info" + JSON.stringify(val));
+                        return val;
+                    }
                 }  
             }          
         }
     }
-
-    return betEvents;
 }
 
-const syncFeed = async function (betID) {
+exports.syncFeed = async function (betID) {
 
     const height = await fetchLastBlock();
     
@@ -102,8 +100,3 @@ const syncFeed = async function (betID) {
     }
 
 }
-
-module.exports = { syncBet, syncFeed }
-
-
-
