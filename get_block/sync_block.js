@@ -53,29 +53,25 @@ exports.syncBet = async function (current_hash) {
 
     if (notifyList.length > 0) {
         for (const notify of notifyList) {
-            // e means each event 
             const states = notify['States'];
             const contractHash = notify['ContractAddress']; 
-            console.log("\n*** the whole notify is " + JSON.stringify(notify));
+            // console.log("\n*** the whole notify is " + JSON.stringify(notify));
 
-            if (contractHash = config.myContractHash) {
-                const firstval = Ont.utils.hexstr2str(states[0]);
-                if (firstval === 'bet') {
-                    if (notify.TxHash == current_hash) {
-                        const bet = parseInt(states[1], 16);                  
-                        const address = Ont.utils.hexstr2str(states[2]);
-                        const time = moment().format('YYYY-MM-DD');
-                        const val = [bet, address, time];
-                        console.log("check out this info" + JSON.stringify(val));
-                        return val;
-                    }
-                }  
+            if (contractHash == config.myContractHash) {
+                if (notify.TxHash == current_hash) {
+                    const bet = parseInt(states[0], 16);                  
+                    // const address = Ont.utils.hexstr2str(states[2]);
+                    // const time = moment().format('YYYY-MM-DD');
+                    // const val = [bet, address, time];
+                    // console.log("check out this info" + JSON.stringify(val));
+                    return bet;
+                }                 
             }          
         }
     }
 }
 
-exports.syncFeed = async function (betID) {
+exports.syncFeed = async function (current_hash) {
 
     const height = await fetchLastBlock();
     
@@ -85,18 +81,67 @@ exports.syncFeed = async function (betID) {
 
     if (notifyList.length > 0) {
         for (const notify of notifyList) {
-            // e means each event 
             const states = notify['States'];
             const contractHash = notify['ContractAddress']; 
-            console.log("\n*** the whole notify is " + JSON.stringify(notify));
+            // console.log("\n*** the whole notify is " + JSON.stringify(notify));
 
-            if (contractHash = config.myContractHash) {
-                const firstval = parseInt(states[0], 16);
-                if (firstval === betID) {
-                    return states;
+            if (contractHash == config.myContractHash) {
+                if (notify.TxHash === current_hash) {
+                    map = new Map();
+
+                    for (let i = 0; i < states.length; i++) {
+                        const bet = parseInt(states[i][0], 16);
+                        const ticker = Ont.utils.hexstr2str(states[i][1], 16);
+                        const target_price = parseInt(states[i][2], 16);
+                        const change = parseInt(states[i][3], 16) * parseInt(states[i][4], 16);
+                        const for_avg_rep = (parseInt(states[i][5], 16) / 1e8) - 1e8;
+                        const against_avg_rep = (parseInt(states[i][6], 16) / 1e8) - 1e8;
+                        const for_staked = parseInt(states[i][7], 16) / 1e8;
+                        const against_staked = parseInt(states[i][8], 16) / 1e8;
+                        const date = Ont.utils.hexstr2str(states[i][9], 16)
+                        const prob = parseInt(states[i][10], 16) / 1e8;
+
+                        const val = [ticker, target_price, change, for_avg_rep, against_avg_rep, for_staked, against_staked, date, prob];
+                        map.set(bet, val);
+                        }
+
+                    return map;
                 }  
             }          
         }
     }
-
 }
+
+exports.syncRecord = async function (current_hash) {
+
+    const height = await fetchLastBlock();
+    
+    const notifyList = await fetchScEventsByBlock(height);
+
+    if (notifyList.length > 0) {
+        for (const notify of notifyList) {
+            // e means each event 
+            const states = notify['States'];
+            const contractHash = notify['ContractAddress']; 
+            // console.log("\n*** the whole notify is " + JSON.stringify(notify));
+
+            if (contractHash == config.myContractHash) {
+                if (notify.TxHash === current_hash) {
+                    const bets = states[0];
+                    const results = states[1];
+                    const net = states[2];
+                    for (let i = 0; i < bets.length; i++) {
+                        bets[i] = parseInt(bets[i], 16);
+                        results[i] = parseInt(results[i], 16);
+                        net[i] = parseInt(net[i], 16);
+                    }
+                    const val = [bets, results, net];
+                    return val; 
+                }  
+            }          
+        }
+    }
+}
+
+
+
