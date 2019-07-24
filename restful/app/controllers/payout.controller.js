@@ -1,42 +1,53 @@
 // const Payout = require('../models/payout.model.js');
 const scrape = require('../scrape/scraper.ts');
-const sc = require('../sc/sc2.js');
-const sched = require('node-schedule');
+const sc = require('../sc/sc.js');
+const schedule = require('node-schedule');
 const moment = require('moment');
-const Bet = require('../controllers/bet.model.js')
+const Bet = require('../models/bet.model.js')
 
 exports.init = async function(req, res) {
 
-	var payout_check = schedule.scheduleJob('30 0 0 * * *', () => {
-		const now = moment().format('YYYY-MM-DD');
+	var payout_check = schedule.scheduleJob('2 * * * * *', () => {
+		//const now = moment().format('YYYY-MM-DD');
+		const now = '0505';
 
 		// for everything in database with exp date now
-		payout_bets = Bet.find({ date: now }, (err, bets) => {
+		Bet.find({ date: now }, async(err, payout_bets) => {
+			console.log("payout is running .. ");
 			if (err) return console.error(err);
-			console.log(bets);
-		});
-		for (let bet in payout_bets) {
-			id = bet['betID'];
-			ticker = bet['ticker'];
+
+			if (payout_bets.length == 0) console.log("no bets that match");
+		
+		for (let bet of payout_bets) {
+			// console.log(bet);
+
+			const id = 5;// bet['betID'];
+			const ticker = bet['ticker'];
 
 			let current_price = -1;
     		try { current_price = await scrape.scrapePrice(ticker);
-    		console.log(current_price);
+    		// console.log(current_price);
     		}
     		catch (error) {
         		return res.status(400).send("scraper died");
     		}
 
-    		const params = [{ type: 'Integer', value: id },
-	          				{ type: 'Integer', value: current_price }];
+    		const params = [Number(id), Number(current_price)];
+	        //console.log("id ->" + id);
+	        //console.log("current_price ->" + current_price);
+
+	        // bet.remove();
 
 	        try {
-	            const payout = await payout(params);
+	            const payout = await sc.payout(params);
 	        } catch (error) {
-	            return response.status(400).send(error);
+	        	console.log(error);
+	            //return res.status(400).send(error);
 	        }
 		}
-		Bet.deleteMany(bets);
+		
+
+		});
 
 		// vote_bets = Bet.find({vote_date: now}, (err, bets) => {
 		// 	if (err) return console.error(err);
