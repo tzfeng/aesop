@@ -59,12 +59,15 @@ exports.syncBet = async function (current_hash) {
 
             if (contractHash == config.myContractHash) {
                 if (notify.TxHash == current_hash) {
-                    const bet = parseInt(states[0], 16);                  
-                    // const address = Ont.utils.hexstr2str(states[2]);
-                    // const time = moment().format('YYYY-MM-DD');
-                    // const val = [bet, address, time];
-                    // console.log("check out this info" + JSON.stringify(val));
-                    return bet;
+                    const key = Ont.utils.hexstr2str(states[0]);
+                    if (key == 'bet') {
+                        const bet = parseInt(states[1], 16);                  
+                        // const address = Ont.utils.hexstr2str(states[2]);
+                        // const time = moment().format('YYYY-MM-DD');
+                        // const val = [bet, address, time];
+                        // console.log("check out this info" + JSON.stringify(val));
+                        return bet;
+                    }
                 }                 
             }          
         }
@@ -87,25 +90,28 @@ exports.syncFeed = async function (current_hash) {
 
             if (contractHash == config.myContractHash) {
                 if (notify.TxHash === current_hash) {
-                    map = new Map();
+                    const key = Ont.utils.hexstr2str(states[0]);
+                    if (key == 'feed') {
+                        map = new Map();
 
-                    for (let i = 0; i < states.length; i++) {
-                        const bet = parseInt(states[i][0], 16);
-                        const ticker = Ont.utils.hexstr2str(states[i][1], 16);
-                        const target_price = parseInt(states[i][2], 16);
-                        const change = parseInt(states[i][3], 16) * parseInt(states[i][4], 16);
-                        const for_avg_rep = (parseInt(states[i][5], 16) / 1e8) - 1e8;
-                        const against_avg_rep = (parseInt(states[i][6], 16) / 1e8) - 1e8;
-                        const for_staked = parseInt(states[i][7], 16) / 1e8;
-                        const against_staked = parseInt(states[i][8], 16) / 1e8;
-                        const date = Ont.utils.hexstr2str(states[i][9], 16)
-                        const prob = parseInt(states[i][10], 16) / 1e8;
+                        for (let i = 1; i < states.length; i++) {
+                            const bet = parseInt(states[i][0], 16);
+                            const ticker = Ont.utils.hexstr2str(states[i][1], 16);
+                            const target_price = parseInt(states[i][2], 16);
+                            const change = parseInt(states[i][3], 16) * parseInt(states[i][4], 16);
+                            const for_avg_rep = (parseInt(states[i][5], 16) / 1e8) - 1e8;
+                            const against_avg_rep = (parseInt(states[i][6], 16) / 1e8) - 1e8;
+                            const for_staked = parseInt(states[i][7], 16) / 1e8;
+                            const against_staked = parseInt(states[i][8], 16) / 1e8;
+                            const date = Ont.utils.hexstr2str(states[i][9], 16)
+                            const prob = parseInt(states[i][10], 16) / 1e8;
 
-                        const val = [ticker, target_price, change, for_avg_rep, against_avg_rep, for_staked, against_staked, date, prob];
-                        map.set(bet, val);
-                        }
+                            const val = [ticker, target_price, change, for_avg_rep, against_avg_rep, for_staked, against_staked, date, prob];
+                            map.set(bet, val);
+                            }
 
-                    return map;
+                        return map;
+                    }
                 }  
             }          
         }
@@ -127,21 +133,21 @@ exports.syncRecord = async function (current_hash) {
 
             if (contractHash == config.myContractHash) {
                 if (notify.TxHash === current_hash) {
-                    const bets = states[0];
-                    const results = states[1];
-                    const net = states[2];
-                    for (let i = 0; i < bets.length; i++) {
-                        bets[i] = parseInt(bets[i], 16);
-                        results[i] = parseInt(results[i], 16);
-                        net[i] = parseInt(net[i], 16);
+                    const key = Ont.utils.hexstr2str(states[0]);
+                        if (key == 'record') {
+                        const bets = states[1];
+                        const results = states[2];
+                        const net = states[3];
+                        for (let i = 0; i < bets.length; i++) {
+                            bets[i] = parseInt(bets[i], 16);
+                            results[i] = parseInt(results[i], 16);
+                            net[i] = parseInt(net[i], 16);
+                        }
+                        const val = [bets, results, net];
+                        return val; 
                     }
-                    const val = [bets, results, net];
-                    return val; 
                 }  
             }          
         }
     }
 }
-
-
-
