@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 mongoose.set('useFindAndModify', false);
 
 // address, amt_staked, ticker, sign, margin, time
-const BetSchema = mongoose.Schema({
+const PayoutSchema = mongoose.Schema({
 	_id: Number,
 	ticker: String,
 	change: Number,
@@ -14,9 +14,10 @@ const BetSchema = mongoose.Schema({
  	for_avg_rep: Number,
  	against_avg_rep: Number,
  	prob: Number,
-	sector: String
+	sector: String,
+	result: Boolean
 }, {
     timestamps: true
 });
 
-module.exports = mongoose.model('Bet', BetSchema);
+module.exports = mongoose.model('Payout', PayoutSchema);

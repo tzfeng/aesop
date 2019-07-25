@@ -3,7 +3,9 @@ const scrape = require('../scrape/scraper.ts');
 const sc = require('../sc/sc.js');
 const schedule = require('node-schedule');
 const moment = require('moment');
-const Bet = require('../models/bet.model.js')
+const Bet = require('../models/bet.model.js');
+const Payout = require('../models/payout.model.js');
+
 
 exports.init = async function(req, res) {
 
@@ -45,19 +47,41 @@ exports.init = async function(req, res) {
 
 		        var params = [Number(id), Number(current_price)];
 
-		        bet.remove();
+		        // bet.remove();
    
 		        try {
-		            await sc.payout(params, res);
+		            const bet_result = await sc.payout(params, res);
 		        }
 		        catch (e) {
 		        	console.error(e);
 		        }
-		         /*catch (error) {
-		        	// console.log("sc payout err");
-		        	console.error(error);
-		            //return res.status(400).send(error);
-		        }*/
+
+		        const payout = new Payout({
+	        		_id: Number(bet['_id']),
+					ticker: bet['ticker'],
+					change: Number(bet['change']),
+					target_price: Number(bet['target_price']),
+					date: bet['date'],
+				 	for_staked: Number(bet['for_staked']),
+				 	against_staked: Number(bet['against_staked']),
+				 	for_avg_rep: Number(bet['for_avg_rep']),
+				 	against_avg_rep: Number(bet['against_avg_rep']),
+				 	prob: Number(bet['prob']),
+					sector: bet['sector'],
+					result: bet_result
+		        });
+    // Save bet in the database
+			    payout.save()
+			    .then(data => {
+			        res.send(data);
+			    }).catch(err => {
+			        res.status(500).send({
+			            message: err.message || "Some error occurred while creating the bet."
+			        });
+			    });
+
+			    bet.remove();
+
 			}
 		
 

@@ -208,7 +208,7 @@ exports.syncRecord = async function (current_hash) {
             if (contractHash == config.myContractHash) {
                 if (notify.TxHash === current_hash) {
                     const key = Ont.utils.hexstr2str(states[0]);
-                        if (key == 'record') {
+                    if (key == 'record') {
                         const bets = states[1];
                         const results = states[2];
                         const net = states[3];
@@ -219,6 +219,39 @@ exports.syncRecord = async function (current_hash) {
                         }
                         const val = [bets, results, net];
                         return val; 
+                    }
+                    if (key == 'No bets') { return [ null, null, null ]; }                       
+                }  
+            }          
+        }
+    }
+}
+
+exports.syncHistory = async function (current_hash) {
+
+    const height = await fetchLastBlock();
+    
+    const notifyList = await fetchScEventsByBlock(height);
+
+    if (notifyList.length > 0) {
+        for (const notify of notifyList) {
+            // e means each event 
+            const states = notify['States'];
+            const contractHash = notify['ContractAddress']; 
+            // console.log("\n*** the whole notify is " + JSON.stringify(notify));
+
+            if (contractHash == config.myContractHash) {
+                if (notify.TxHash === current_hash) {
+                    const key = Ont.utils.hexstr2str(states[0]);
+                        if (key == 'Final result') {
+                        const result = states[1];
+                        switch (result) {
+                            case -1: result = 'Incorrect';
+                            case 0: result = 'No price change';
+                            case 1: result = 'Correct';
+                            case 2: result = 'Incomplete';
+                        }
+                        return result;
                     }
                 }  
             }          

@@ -1,7 +1,6 @@
 const Bet = require('../models/bet.model.js');
 const sc = require('../sc/sc.js');
 const scrape = require('../scrape/scraper.ts');
-const sync_block = require('../sync/sync_block.js');
 
 // const sync = require('../../sync/sync_block.js');
 // const sc = require('../../node_modules/ontology-ts-sdk/')

@@ -1,10 +1,10 @@
 const asyncHandler = require('express-async-handler')
 
 module.exports = (app) => {
-    const bets = require('../controllers/bet.controller.js');
+    const bets = require('../controllers/record.controller.js');
 
     // Create a new bet
-    app.post('/bets', asyncHandler(async (req, res, next) => {
+    app.post('/record', asyncHandler(async (req, res, next) => {
     const bar = await bets.create(req, res);
     // res.send(bar);
     }));
