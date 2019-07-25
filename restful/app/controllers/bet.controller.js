@@ -1,6 +1,8 @@
 const Bet = require('../models/bet.model.js');
-// const create_bet = require('../../sc/src/create_bet.ts');
+const sc = require('../sc/sc.js');
 const scrape = require('../scrape/scraper.ts');
+const sync_block = require('../sync/sync_block.js');
+
 // const sync = require('../../sync/sync_block.js');
 // const sc = require('../../node_modules/ontology-ts-sdk/')
 
@@ -16,8 +18,8 @@ exports.create = async function(req, res) {
 
     // scrape price
     let init_price1 = -1;
-    try { init_price1 = await scrape.scrapePrice("AAPL");
-    console.log(init_price1);
+    try { init_price1 = 11; // await scrape.scrapePrice("AAPL");
+    //console.log(init_price1);
     }
     catch (error) {
         return res.status(400).send("scraper died");
@@ -25,35 +27,29 @@ exports.create = async function(req, res) {
 
     // scrape sector
     let sect1 = "unrendered";
-    try { sect1 = await scrape.scrapeSect("AAPL");
-    console.log(sect1);
+    try { sect1 = "strings"; // await scrape.scrapeSect("AAPL");
+    //console.log(sect1);
     }
     catch (error) {
         return res.status(400).send("scraper died");
     }
     
     // SC
-        params = [{ type: 'String', value: req.body.address },
-          { type: 'Integer', value: req.body.amount_staked },
-          { type: 'String', value: req.body.ticker },
-          { type: 'Integer', value: req.body.sign }, // sign
-          { type: 'Integer', value: req.body.margin }, // margin
-          { type: 'String', value: req.body.date}, // time
-          { type: 'Integer', value: init_price1} // init_price
-          ]
-/*
-        try {
-            const betID = await create_bet(params);
-        } catch (error) {
-            return response.status(400).send(error);
-        }
-
-        console.log(betID);*/
-
+       const params = [ req.body.address,
+          req.body.amount_staked,
+          req.body.ticker,
+          req.body.sign,
+          req.body.margin,
+          req.body.date,
+          init_price1];
+   
+    let betID = await sc.create_bet(params, null);
+    console.log(betID);
 
     // Create a bet
     const bet = new Bet({
         title: "oh no", 
+        betID: Number(betID) || -404,
         address: req.body.address || "Untitled address",
         amount_staked: req.body.amount_staked || -404,
         ticker: req.body.ticker || "Untitled ticker",

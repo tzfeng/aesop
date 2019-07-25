@@ -1,5 +1,11 @@
-const express = require('express');
+import express from 'express';
 const bodyParser = require('body-parser');
+const Payout = require('./app/controllers/payout.controller.js');
+import cors from 'cors';
+
+
+// import Arena from 'bull-arena';
+// import { queues, NOTIFY_URL } from './queues.js';
 
 // create express app
 const app = express();
@@ -9,6 +15,8 @@ app.use(bodyParser.urlencoded({ extended: true }))
 
 // parse requests of content-type - application/json
 app.use(bodyParser.json())
+
+app.use(cors())
 
 // Configuring the database
 const dbConfig = require('./config/database.config.js');
@@ -37,7 +45,17 @@ require('./app/routes/bet.routes.js')(app);
 // listen for requests
 app.listen(3000, () => {
     console.log("Server is listening on port 3000");
+    // setInterval(Payout.init, 3000);
 });
 
-const gah = require('./app/sc/sc.js');
-gah.create_bet().then(ans => console.log(ans));
+/*
+const Bet = require('./app/models/bet.model.js');
+
+Bet.find({date: "01-01-2019"}, function (err, bets) {
+  if (err) return console.error(err);
+  console.log(bets[0]['betID']);
+})*/
+
+
+
+

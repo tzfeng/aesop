@@ -44,7 +44,6 @@ exports.scrapeSect = async function(ticker) {
             const ind3 = $("span[data-reactid='21']", ind2).text();
 
             //const industry = $('#Col2-12-QuoteModule-Proxy > div > div > div > div > p.D\\(ib\\).Va\\(t\\) > span:nth-child(2)').text();
-            console.log(ind3);
             resolve(ind3);
         });
     });

@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler')
+const Payout = require('../controllers/payout.controller.js');
 
 module.exports = (app) => {
     const bets = require('../controllers/bet.controller.js');

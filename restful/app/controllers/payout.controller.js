@@ -7,44 +7,58 @@ const Bet = require('../models/bet.model.js')
 
 exports.init = async function(req, res) {
 
-	var payout_check = schedule.scheduleJob('2 * * * * *', () => {
 		//const now = moment().format('YYYY-MM-DD');
-		const now = '0505';
+		const now = '2019-07-23';
 
 		// for everything in database with exp date now
 		Bet.find({ date: now }, async(err, payout_bets) => {
-			console.log("payout is running .. ");
-			if (err) return console.error(err);
+			// console.log("payout is running .. ");
+
+			if (err) return console.log("beginning of payout " + err);
 
 			if (payout_bets.length == 0) console.log("no bets that match");
 		
-		for (let bet of payout_bets) {
-			// console.log(bet);
+			for (let bet of payout_bets) {
 
-			const id = 5;// bet['betID'];
-			const ticker = bet['ticker'];
+				var id = bet['betID'];
+				if (id == -404) { 
+					bet.remove(); 
+					// console.log("removed 404 ");
+					continue; 
+				}
 
-			let current_price = -1;
-    		try { current_price = await scrape.scrapePrice(ticker);
-    		// console.log(current_price);
-    		}
-    		catch (error) {
-        		return res.status(400).send("scraper died");
-    		}
+				// console.log(id);
+				var ticker = bet['ticker'];
 
-    		const params = [Number(id), Number(current_price)];
-	        //console.log("id ->" + id);
-	        //console.log("current_price ->" + current_price);
+				// let current_price = 5;
+	    		try { 
+	    		var current_price = await scrape.scrapePrice(ticker);
+	    		// console.log("price " + current_price);
+	    		}
+	    		catch (error) {
+	        		return res.status(400).send("scraper died");
+	    		}
 
-	        // bet.remove();
+	    		
+		        //console.log("id ->" + id);
+		        //console.log("current_price ->" + current_price);
 
-	        try {
-	            const payout = await sc.payout(params);
-	        } catch (error) {
-	        	console.log(error);
-	            //return res.status(400).send(error);
-	        }
-		}
+		        var params = [Number(id), Number(current_price)];
+
+		        bet.remove();
+   
+		        try {
+		            await sc.payout(params, res);
+		        }
+		        catch (e) {
+		        	console.error(e);
+		        }
+		         /*catch (error) {
+		        	// console.log("sc payout err");
+		        	console.error(error);
+		            //return res.status(400).send(error);
+		        }*/
+			}
 		
 
 		});
@@ -58,6 +72,6 @@ exports.init = async function(req, res) {
 			// maybe display that the voting period has elapsed on frontend
 	// 	}
 
-	});
+	
 
 }
