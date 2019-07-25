@@ -1,15 +1,19 @@
 const mongoose = require('mongoose');
 
+mongoose.set('useFindAndModify', false);
+
 // address, amt_staked, ticker, sign, margin, time
 const BetSchema = mongoose.Schema({
-	betID: Number,
-	address: String,
-	amount_staked: Number,
+	_id: Number,
 	ticker: String,
-	sign: Number,
-	margin: Number,
+	change: Number,
+	target_price: Number,
 	date: String,
-	init_price: Number,
+ 	for_staked: Number,
+ 	against_staked: Number,
+ 	for_avg_rep: Number,
+ 	against_avg_rep: Number,
+ 	prob: Number,
 	sector: String
 }, {
     timestamps: true
