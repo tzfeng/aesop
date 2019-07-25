@@ -60,13 +60,70 @@ exports.syncBet = async function (current_hash) {
             const states = notify['States'];
             const contractHash = notify['ContractAddress']; 
             // console.log("\n*** the whole notify is " + JSON.stringify(notify));
-
             if (contractHash == config.myContractHash) {
                 if (notify.TxHash == current_hash) {
                     const key = Ont.utils.hexstr2str(states[0]);
                     if (key == 'bet') {
-                        const bet = parseInt(states[1], 16);                  
-                        return bet;
+                        // console.log(JSON.stringify(states[2][9]));
+                        const bet = HexToInt(states[1]);
+                        // const for_rep = HexToInt(states[2][0]);
+                        // const against_rep = HexToInt(states[2][1]);                 
+                        const for_staked = HexToInt(states[2][2]) / 1e8;
+                        const against_staked = HexToInt(states[2][3]) / 1e8;
+                        const change = HexToInt(states[2][6]) * HexToInt(states[2][7]);
+                        const target_price = HexToInt(states[2][8]) / 1e8;
+                        const date = Ont.utils.hexstr2str(states[2][9]);
+                        const ticker = Ont.utils.hexstr2str(states[2][10]);
+                        const for_avg_rep = HexToInt(states[2][11]) / 1e8 - 1e8;
+                        var against_avg_rep;
+                        if (against_staked == 0) { against_avg_rep = 0; }
+                        else { against_avg_rep = HexToInt(states[2][12]) / 1e8 - 1e8; }
+                        const prob = HexToInt(states[2][13]) / 1e8;
+
+                        const val = [bet, ticker, change, target_price, date, for_staked, against_staked, for_avg_rep, against_avg_rep, prob];
+                        return val;
+                    }
+                }                 
+            }          
+        }
+    }
+}
+
+exports.syncVote = async function (current_hash) {
+
+    const height = await fetchLastBlock();
+    
+    const notifyList = await fetchScEventsByBlock(height);
+    
+
+    if (notifyList.length > 0) {
+        for (const notify of notifyList) {
+            const states = notify['States'];
+            const contractHash = notify['ContractAddress']; 
+            // console.log("\n*** the whole notify is " + JSON.stringify(notify));
+
+            if (contractHash == config.myContractHash) {
+                if (notify.TxHash == current_hash) {
+                    const key = Ont.utils.hexstr2str(states[0]);
+                    if (key == 'vote') {
+                        // console.log(JSON.stringify(states[2][9]));
+                            const bet = HexToInt(states[1]);
+                        // const for_rep = HexToInt(states[2][0]);
+                        // const against_rep = HexToInt(states[2][1]);                 
+                        const for_staked = HexToInt(states[2][2]) / 1e8;
+                        const against_staked = HexToInt(states[2][3]) / 1e8;
+                        const change = HexToInt(states[2][6]) * HexToInt(states[2][7]);
+                        const target_price = HexToInt(states[2][8]) / 1e8;
+                        const date = Ont.utils.hexstr2str(states[2][9]);
+                        const ticker = Ont.utils.hexstr2str(states[2][10]);
+                        const for_avg_rep = HexToInt(states[2][11]) / 1e8 - 1e8;
+                        var against_avg_rep;
+                        if (against_staked == 0) { against_avg_rep = 0; }
+                        else { against_avg_rep = HexToInt(states[2][12]) / 1e8 - 1e8; }
+                        const prob = HexToInt(states[2][13]) / 1e8;
+
+                        const val = [bet, ticker, change, target_price, date, for_staked, against_staked, for_avg_rep, against_avg_rep, prob];
+                        return val;
                     }
                 }                 
             }          
