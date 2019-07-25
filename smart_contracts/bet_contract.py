@@ -169,7 +169,7 @@ def Main(operation, args):
 
 # initialize all necessary data structures to be stored onchain
 def init():
-    if Get(ctx, REPKEY) and Get(ctx, BANKEY) and Get(ctx, BETKEY) and Get(ctx, ABKEY):
+    if Get(ctx, BETKEY):
         Notify(['Already initialized'])
         return False
     else:
@@ -177,7 +177,7 @@ def init():
         Put(ctx, BETKEY, BETID)
         Notify(['BETID inited'])
 
-        subtract_bank(token_owner, 10000000 * FACTOR)
+        subtract_bank(token_owner, 10000 * FACTOR)
         Notify(['Rep tokens transferred to contract'])
 
         Notify(['Successfully inited'])
@@ -579,6 +579,9 @@ def create_bet(address, amount_staked, stock_ticker, sign, margin, date, init_pr
         against_staked = 0
         for_count = 1
         against_count = 0
+        for_avg_rep = rep_map[address]
+        against_avg_rep = 0
+        prob = FACTOR * 100
         Notify(['Data structures successfully inited'])
 
         # update data
@@ -602,6 +605,11 @@ def create_bet(address, amount_staked, stock_ticker, sign, margin, date, init_pr
         val_list.append(margin)
         val_list.append(target_price)
         val_list.append(date)
+        val_list.append(stock_ticker)
+        val_list.append(for_avg_rep)
+        val_list.append(against_avg_rep)
+        val_list.append(prob)
+        
         Notify(['val_list successfully populated'])
 
         # prepare data structures for storage
@@ -618,7 +626,6 @@ def create_bet(address, amount_staked, stock_ticker, sign, margin, date, init_pr
         # Put(ctx, concatkey(bet, AM_PREFIX), am_info)
         Put(ctx, concatkey(bet, FL_PREFIX), fl_info)
         Put(ctx, concatkey(bet, VAL_PREFIX), val_info)
-        Put(ctx, concatkey(bet, ST_PREFIX), stock_ticker)
         Notify(['Data structures stored onchain'])
 
         # check if ab_info is populated/exists
@@ -689,8 +696,8 @@ def create_bet(address, amount_staked, stock_ticker, sign, margin, date, init_pr
         # result checking func handled by oracle
         # for testing only: use payout on specific bet, manually remember bet IDs
         # figure out how to automate payout as soon as bet is created.
-        Notify([bet])
-        return bet
+        Notify(['bet', bet, val_list])
+        return True
 
 
 # votes on a side of the bet and immediately updates relevant data structures
@@ -762,6 +769,10 @@ def vote(bet, address, amount_staked, for_against):
 
             # update for rep
             val_list[0] += rep_map[address]
+            
+            # update for avg rep 
+            val_list[11] = val_list[0] / val_list[4]
+            
             Notify(['For values updated'])
         else:
             # if people have already voted against this bet, take this action:
@@ -792,8 +803,13 @@ def vote(bet, address, amount_staked, for_against):
 
             # update against rep
             val_list[1] += rep_map[address]
+            
+            # update against avg rep 
+            val_list[12] = val_list[1] / val_list[5]
             Notify(['Against values updated'])
-
+        
+        # update probability
+        val_list[13] = FACTOR * val_list[2] / (val_list[2] + val_list[3]) * 100
         # put val_list back onchain
         val_info = Serialize(val_list)
         Put(ctx, concatkey(bet, VAL_PREFIX), val_info)
@@ -843,7 +859,8 @@ def vote(bet, address, amount_staked, for_against):
         profit_map[concatkey(bet, BT_PREFIX)] = 0
         profit_info = Serialize(profit_map)
         Put(ctx, concatkey(address, PT_PREFIX), profit_info)
-        Notify(['User profit per bet updated'])
+        
+        Notify(['vote', bet, val_list])
         
 
         return True
@@ -1196,8 +1213,6 @@ def bet_info(bet):
         val_info = Get(ctx, concatkey(bet, VAL_PREFIX))
         val_list = Deserialize(val_info)
 
-        stock_ticker = Get(ctx, concatkey(bet, ST_PREFIX))
-
         # retrieve values of interest for this bet from val_list
         for_rep = val_list[0]
         against_rep = val_list[1]
@@ -1209,6 +1224,7 @@ def bet_info(bet):
         margin = val_list[7]
         target_price = val_list[8]
         date = val_list[9]
+        stock_ticker = val_list[10]
         # current price = use oracle
 
         # calculate avg rep on both sides of bet. will be accurate to two decimal places
@@ -1221,10 +1237,9 @@ def bet_info(bet):
         prob = FACTOR * for_staked / (for_staked + against_staked) * 100
         Notify(['probability of bet', prob])
 
-        Notify([bet, stock_ticker, target_price, sign * margin, for_rep, against_rep, for_avg_rep, against_avg_rep,
+        Notify(['bet_info', bet, stock_ticker, target_price, sign, margin, for_rep, against_rep, for_avg_rep, against_avg_rep,
                 for_staked, against_staked, date, prob])
-        return [bet, stock_ticker, target_price, sign * margin, for_rep, against_rep, for_avg_rep, against_avg_rep,
-                for_staked, against_staked, date, prob]
+        return True
 
 
 # returns addresses of all registered users
