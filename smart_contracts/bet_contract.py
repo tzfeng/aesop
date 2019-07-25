@@ -177,7 +177,7 @@ def init():
         Put(ctx, BETKEY, BETID)
         Notify(['BETID inited'])
 
-        subtract_bank(token_owner, 10000 * FACTOR)
+        subtract_bank(token_owner, 100000 * FACTOR)
         Notify(['Rep tokens transferred to contract'])
 
         Notify(['Successfully inited'])
@@ -410,12 +410,12 @@ def purchase_bank(address, amount):
         else:
             bank_info = Get(ctx, BANKEY)
             bank_map = Deserialize(bank_info)
-            bank_map[address] += amount * FACTOR
+            bank_map[address] += amount
             bank_info = Serialize(bank_map)
             Put(ctx, BANKEY, bank_info)
             Notify(['bank_map updated'])
 
-            add_bank(address, amount * FACTOR)
+            add_bank(address, amount)
             Notify(['user wallet updated'])
 
         return True
@@ -528,8 +528,6 @@ def create_bet(address, amount_staked, stock_ticker, sign, margin, date, init_pr
     byte_address = Base58ToAddress(address)
     assert (CheckWitness(byte_address))
 
-    new_amount = amount_staked * FACTOR
-
     if len(byte_address) != 20:
         Notify(['Invalid address'])
         return False
@@ -551,7 +549,7 @@ def create_bet(address, amount_staked, stock_ticker, sign, margin, date, init_pr
     bank_info = Get(ctx, BANKEY)
     bank_map = Deserialize(bank_info)
 
-    if bank_map[address] < new_amount:
+    if bank_map[address] < amount_staked:
         Notify(['Insufficient funds'])
         return False
 
@@ -586,9 +584,9 @@ def create_bet(address, amount_staked, stock_ticker, sign, margin, date, init_pr
 
         # update data
         target_price = init_price + init_price * sign * margin / 100
-        for_map[address] = new_amount
+        for_map[address] = amount_staked
         for_list.append(address)
-        for_staked += new_amount
+        for_staked += amount_staked
         Notify(['Data structures successfully updated'])
 
         # FR, AR, FS, AS, FC, AC, UD, MA, TP, SE are in val_list
@@ -684,12 +682,12 @@ def create_bet(address, amount_staked, stock_ticker, sign, margin, date, init_pr
         Put(ctx, BETKEY, new_bet)
 
         # update bet creator's public bank ledger and actual wallet
-        bank_map[address] -= new_amount
+        bank_map[address] -= amount_staked
         bank_info = Serialize(bank_map)
         Put(ctx, BANKEY, bank_info)
         Notify(['bank_map updated'])
 
-        subtract_bank(address, new_amount)
+        subtract_bank(address, amount_staked)
         Notify(['user wallet updated'])
 
         # timing: voting period, observation period, payout.
@@ -704,8 +702,6 @@ def create_bet(address, amount_staked, stock_ticker, sign, margin, date, init_pr
 def vote(bet, address, amount_staked, for_against):
     byte_address = Base58ToAddress(address)
     assert (CheckWitness(byte_address))
-
-    new_amount = amount_staked * FACTOR
 
     # check if active bet list is populated/exists
     ab_info = Get(ctx, ABKEY)
@@ -741,10 +737,21 @@ def vote(bet, address, amount_staked, for_against):
     # check if bank is sufficient for staking
     bank_info = Get(ctx, BANKEY)
     bank_map = Deserialize(bank_info)
+    
+    # add bet to list of bets the user has participated in
+    bl_info = Get(ctx, concatkey(address, BL_PREFIX))
+    if bl_info:
+        bet_list = Deserialize(bl_info)
+        if bet in bet_list:
+            Notify(['User already voted on this bet'])
+            return False
+    else:
+        bet_list = []
 
-    if bank_map[address] < new_amount:
+    if bank_map[address] < amount_staked:
         Notify(['Insufficient funds'])
         return False
+        
 
     else:
         # get val_list for this particular bet
@@ -758,11 +765,11 @@ def vote(bet, address, amount_staked, for_against):
         # check if user agrees or disagrees with bet
         if for_against:
             # maps user to amount staked
-            add_map(bet, address, new_amount, FM_PREFIX)
+            add_map(bet, address, amount_staked, FM_PREFIX)
             add_user_list(bet, address, FL_PREFIX)
 
             # update for staked
-            val_list[2] += new_amount
+            val_list[2] += amount_staked
 
             # update for count
             val_list[4] += 1
@@ -777,7 +784,7 @@ def vote(bet, address, amount_staked, for_against):
         else:
             # if people have already voted against this bet, take this action:
             if Get(ctx, concatkey(bet, AL_PREFIX)):
-                add_map(bet, address, new_amount, AM_PREFIX)
+                add_map(bet, address, amount_staked, AM_PREFIX)
                 add_user_list(bet, address, AL_PREFIX)
                 Notify(['Existing against_map and against_list'])
 
@@ -796,7 +803,7 @@ def vote(bet, address, amount_staked, for_against):
                 Notify(['against_map and against_list inited'])
 
             # update against staked
-            val_list[3] += new_amount
+            val_list[3] += amount_staked
 
             # update against count
             val_list[5] += 1
@@ -815,20 +822,13 @@ def vote(bet, address, amount_staked, for_against):
         Put(ctx, concatkey(bet, VAL_PREFIX), val_info)
 
         # update wallet and bank ledger, put latter back onchain
-        bank_map[address] -= new_amount
+        bank_map[address] -= amount_staked
         bank_info = Serialize(bank_map)
         Put(ctx, BANKEY, bank_info)
         Notify(['bank_map updated'])
 
-        subtract_bank(address, new_amount)
+        subtract_bank(address, amount_staked)
         Notify(['user wallet updated'])
-
-        # add bet to list of bets the user has participated in
-        bl_info = Get(ctx, concatkey(address, BL_PREFIX))
-        if bl_info:
-            bet_list = Deserialize(bl_info)
-        else:
-            bet_list = []
 
         bet_list.append(bet)
         bl_info = Serialize(bet_list)
@@ -1138,7 +1138,6 @@ def payout(bet, current_price):
         Delete(ctx, concatkey(bet, AM_PREFIX))
         Delete(ctx, concatkey(bet, FL_PREFIX))
         Delete(ctx, concatkey(bet, AL_PREFIX))
-        Delete(ctx, concatkey(bet, ST_PREFIX))
         Delete(ctx, concatkey(bet, VAL_PREFIX))
         remove_list(bet)
         Notify(['Data structures removed, bet completed', bet])
@@ -1182,7 +1181,6 @@ def payout(bet, current_price):
         # delete used data structures
         Delete(ctx, concatkey(bet, FM_PREFIX))
         Delete(ctx, concatkey(bet, FL_PREFIX))
-        Delete(ctx, concatkey(bet, ST_PREFIX))
         Delete(ctx, concatkey(bet, VAL_PREFIX))
         remove_list(bet)
         Notify(['Data structures removed, bet incomplete', bet])
@@ -1239,7 +1237,8 @@ def bet_info(bet):
 
         Notify(['bet_info', bet, stock_ticker, target_price, sign, margin, for_rep, against_rep, for_avg_rep, against_avg_rep,
                 for_staked, against_staked, date, prob])
-        return True
+        return ['bet_info', bet, stock_ticker, target_price, sign, margin, for_rep, against_rep, for_avg_rep, against_avg_rep,
+                for_staked, against_staked, date, prob]
 
 
 # returns addresses of all registered users
