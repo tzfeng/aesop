@@ -17,8 +17,13 @@ module.exports = (app) => {
     app.get('/bets/:betId', bets.findOne);
 
     // Update a bet with betId
-    app.put('/bets/:betId', bets.update);
+    app.put('/bets/:betId', asyncHandler(async (req, res, next) => {
+    const bar = await bets.update(req, res);
+    }));
 
     // Delete a bet with betId
     app.delete('/bets/:betId', bets.delete);
+
+    // update ? 
+    app.put('/bets/:betId', bets.vote);
 }
