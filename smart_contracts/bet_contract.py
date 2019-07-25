@@ -1140,7 +1140,7 @@ def payout(bet, current_price):
         Delete(ctx, concatkey(bet, AL_PREFIX))
         Delete(ctx, concatkey(bet, VAL_PREFIX))
         remove_list(bet)
-        Notify(['Data structures removed, bet completed', bet])
+        Notify(['Final result', final_result])
 
         return True
 
@@ -1183,7 +1183,7 @@ def payout(bet, current_price):
         Delete(ctx, concatkey(bet, FL_PREFIX))
         Delete(ctx, concatkey(bet, VAL_PREFIX))
         remove_list(bet)
-        Notify(['Data structures removed, bet incomplete', bet])
+        Notify(['Final result', 2]
 
         return False
 
