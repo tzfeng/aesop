@@ -1,0 +1,56 @@
+body {
+  background-color: #A9CCE3;
+  font-family: verdana;
+  text-transform: lowercase;
+}
+
+h1 {
+  font-family: Jua;
+  font-size: 80pt;
+  letter-spacing: auto;
+  color: #ef6c58;
+  text-shadow: 2px 2px #81e0ef;
+  /*position:relative;
+  top:25%;*/
+}
+
+h2 {
+  font-size: 20pt;
+  letter-spacing: 5px;
+}
+
+h4 {
+  font-family: Jua;
+  font-size: 11pt;
+  letter-spacing: auto;
+  color: #000000;
+  text-shadow: 0.2px 0.2px #81e0ef;
+  /*position:relative;
+  top:25%;*/
+}
+
+input {
+  width: 50%;
+  padding: 6px 10px;
+  margin: 8px 0;
+  box-sizing: border-box;
+  font-family: Jua;
+  font-size: 10pt;
+  outline: none;
+}
+
+.container {
+  max-width:500px;
+}
+
+a:link, a:visited {
+  color: #6699CC;
+}
+
+a:hover, a:active {
+  color: #4C787E;
+}
+
+a:hover {
+  text-decoration: line-through;
+}

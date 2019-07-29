@@ -1,0 +1,105 @@
+ul {
+list-style-type: none;
+}
+/*
+.nobullet {
+  list-style-type: none;
+}*/
+
+.feed-container h5 {
+  font-family: AvenirNextCondensed-Bold;
+  font-size:40pt;
+  color: rgb(0, 85, 255);
+  text-transform: none;
+}
+
+input:focus{
+    outline: none;   
+}
+
+button:focus { outline: none; }
+/*
+.Nav {
+  position: fixed;
+  bottom: 0;
+}*/
+
+.container {
+  width:500px;
+  align-content: center;
+}
+
+.container a:link, a:visited {
+  color: #6699CC;
+}
+
+.container a:hover, a:active {
+  color: #4C787E;
+}
+
+.container a:hover {
+  text-decoration: line-through;
+}
+
+.back-button, .back-button:active, .back-button:visited, .back-button:hover {
+  background-color: transparent; 
+  border: none;
+  color: black;
+  font-family: monospace;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 31px;
+  outline: none;
+}
+
+.back-button:hover {
+  font-color: #555555;
+  font-weight:bold;
+}
+
+
+.def-button, .def-button button, .def-button:active, .def-button:visited {
+  background-color: gray; 
+  color: white;
+  padding: 10px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 13px;
+  font-family: monospace;
+  border-radius: 30px;
+  outline: none;
+  margin: 0 1px 0 0;
+  flex: 1 0 auto;
+}
+
+.def-button:hover {
+  background-color: #888888;
+}
+
+.def-button button:focus {
+  outline:none;
+}
+
+/*
+.bet-button, .bet-button:link, .bet-button:visited, .bet-button:active, .bet-button:hover {
+  background-color: white;
+  border: none;
+  color: #A9CCE3;
+  padding: 10px;
+  width:400px;
+  height: 150px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 20px;
+  font-family: verdana;
+  outline: none;
+}
+
+.bet-button:hover {
+  background-color: #dddddd;
+  color: white;
+}*/
+

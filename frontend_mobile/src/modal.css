@@ -1,0 +1,27 @@
+.modal {
+  position: fixed;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.display-block {
+  display: block;
+}
+
+.display-none {
+  display: none;
+}
+
+.modal-content-div {
+	border: 1px solid #cccccc;
+	background-color: #eeeeee;
+	width: 500px;
+	max-width: 500px;
+	max-height: 600px;
+	left: 10%;
+	top: 20%;
+    position: fixed;
+    z-index: 10000;
+    overflow: auto;
+    text-align: center;
+    padding: 35px;
+}
