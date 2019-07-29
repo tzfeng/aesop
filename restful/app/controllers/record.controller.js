@@ -1,4 +1,4 @@
-const Record = require('../models/record.model.js');
+/*const Record = require('../models/record.model.js');
 const sc = require('../sc/sc.js');
 
 exports.create = async function(req, res) {
@@ -89,4 +89,4 @@ exports.update = async function(req, res) {
             message: "record updating bet with address " + req.params.address
         });
     });
-}
+}*/

@@ -1,19 +1,21 @@
 var Ont = require('ontology-ts-sdk');
 const sync_block = require('../sync/sync_block.js');
-const records = require('../controllers/record.controller.js');
+// const records = require('../controllers/record.controller.js');
+
+import { decimalToHex } from '../utils.js';
 
 const Parameter = Ont.Parameter;
 const ParameterType = Ont.ParameterType;
 
-const PRI_KEY = 'b9d8b1d1b5536e5967e5b6ad59137323a72aa63bb7bbd49a9494b234aca3e3a6';
-const ADDRESS = 'AdvGwt5SBmFnRzHU7LxsWnyKsJKthSEvpb';
-const CONTRACT_HASH = '1e158575e2c2ab55ab3fbfcd8351657be149f83e';
+const PRI_KEY = '3de98da14a2f9334a9050baa0fc09fe9c0e4cb1d6dca202b8c67e03110c47fbe'; //'f2e3d5ab67b55410625c59aeee5ea889c355f80dbbb75ff84ce880cc8f09a935';// 'a872b6121f3b56e65008369926d65a6b334774e1d6cc3f3d103a4ad4253e73ff'; //
+const ADDRESS = 'AMrsgV6nAqnzypEebSZGvuQuG69fQEePCx'; //'AQK8REDD3MW4BnKgDBTfNxci7PHRutTH6z'; // 'AXk5e47FbQJPcuibfoYrnSpxqpWSWWpCJS';// 
+const CONTRACT_HASH = '1809444acf2327f7aa6c22542248bb68062d9553';
+const GAS_LIM = '60000';
 const CONST = Math.pow(10, 8);
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
-
 
 export async function create_user(req, res) {
     const restClient = new Ont.RestClient();
@@ -30,12 +32,13 @@ export async function create_user(req, res) {
                 new Parameter('Address', ParameterType.String, ADDRESS)
     ];
 
-    const tx = Ont.TransactionBuilder.makeInvokeTransaction(method, params, contractAddr, '500', '27047', account.address);
+    const tx = Ont.TransactionBuilder.makeInvokeTransaction(method, params, contractAddr, '500', GAS_LIM, account.address);
     Ont.TransactionBuilder.signTransaction(tx, privateKey);
-    res = await restClient.sendRawTransaction(tx.serialize(), false, true); // 2nd arg is if you read it 
+    try { res = await restClient.sendRawTransaction(tx.serialize(), false, true); }
+    catch (e) { throw e; } 
     console.log(JSON.stringify(res));
 
-    const init_record = await records.create(req, res);
+    // const init_record = await records.create(req, res);
 }
 
 export async function create_bet(req, res) {
@@ -59,7 +62,7 @@ export async function create_bet(req, res) {
                 new Parameter('Date', ParameterType.String, req[5]),
                 new Parameter('Init_Price', ParameterType.Integer, req[6] * CONST)
     ];
-    const tx = Ont.TransactionBuilder.makeInvokeTransaction(method, params, contractAddr, '500', '60000', account.address);
+    const tx = Ont.TransactionBuilder.makeInvokeTransaction(method, params, contractAddr, '500', GAS_LIM, account.address);
     Ont.TransactionBuilder.signTransaction(tx, privateKey);
 
     try {
@@ -86,6 +89,7 @@ export async function create_bet(req, res) {
 }
 
 export async function vote(req, res) {
+    ''
 
     const restClient = new Ont.RestClient();
 
@@ -103,7 +107,7 @@ export async function vote(req, res) {
                 new Parameter('Amount_Staked', ParameterType.Integer, req[2] * CONST),
                 new Parameter('For_Against', ParameterType.Boolean, req[3])
     ];
-    const tx = Ont.TransactionBuilder.makeInvokeTransaction(method, params, contractAddr, '500', '60000', account.address);
+    const tx = Ont.TransactionBuilder.makeInvokeTransaction(method, params, contractAddr, '500', GAS_LIM, account.address);
     Ont.TransactionBuilder.signTransaction(tx, privateKey);
 
     try {
@@ -142,13 +146,13 @@ export async function payout(req, res) {
     const method = 'payout';
 
     const params = [
-                new Parameter('BetID', ParameterType.Integer, req[0]),
+                new Parameter('BetID', ParameterType.Integer, decimalToHex(req[0])),
                 new Parameter('Current_Price', ParameterType.Integer, req[1] * CONST)
                 ];
 
-    // console.log(JSON.stringify(params));
+    console.log(JSON.stringify(params));
 
-    const tx = Ont.TransactionBuilder.makeInvokeTransaction(method, params, contractAddr, '500', '30000', account.address);
+    const tx = Ont.TransactionBuilder.makeInvokeTransaction(method, params, contractAddr, '500', GAS_LIM, account.address);
     Ont.TransactionBuilder.signTransaction(tx, privateKey);
 
     try {
@@ -163,7 +167,7 @@ export async function payout(req, res) {
 
     try {
     var val = await sync_block.syncHistory(txn);
-    console.log("val ? " + val);
+    console.log("val returned by sync block to sc.payout: " + val);
     } 
     catch (e) {
         console.log("sync block err");
@@ -174,6 +178,7 @@ export async function payout(req, res) {
 }
 
 // user record
+/*
 export async function record(req, res) {
     
     const restClient = new Ont.RestClient();
@@ -192,7 +197,7 @@ export async function record(req, res) {
 
     console.log("param " + JSON.stringify(params));
 
-    const tx = Ont.TransactionBuilder.makeInvokeTransaction(method, params, contractAddr, '500', '27026', account.address);
+    const tx = Ont.TransactionBuilder.makeInvokeTransaction(method, params, contractAddr, '500', GAS_LIM, account.address);
     Ont.TransactionBuilder.signTransaction(tx, privateKey);
 
     try {
@@ -215,7 +220,7 @@ export async function record(req, res) {
     }
     return val;
 
-}
+}*/
 
 export async function feed(req, res) {
     
@@ -230,7 +235,7 @@ export async function feed(req, res) {
 
     const params = [];
 
-    const tx = Ont.TransactionBuilder.makeInvokeTransaction(method, params, contractAddr, '500', '27026', account.address);
+    const tx = Ont.TransactionBuilder.makeInvokeTransaction(method, params, contractAddr, '500', GAS_LIM, account.address);
     Ont.TransactionBuilder.signTransaction(tx, privateKey);
 
     try {
@@ -255,7 +260,10 @@ export async function feed(req, res) {
 
 }
 
+// console.log(decimalToHex(32));
 // record([ADDRESS], null).then((ans)=>{console.log(JSON.stringify(ans))});
 // feed().then((ans)=>{console.log(JSON.stringify(ans))});
 // create_user();
 
+// var params = ['1f', 199];
+// payout(params, null).then((ans)=>{console.log(JSON.stringify(ans))});

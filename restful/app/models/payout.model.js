@@ -4,7 +4,7 @@ mongoose.set('useFindAndModify', false);
 
 // address, amt_staked, ticker, sign, margin, time
 const PayoutSchema = mongoose.Schema({
-	_id: Number,
+	betId: Number,
 	ticker: String,
 	change: Number,
 	target_price: Number,
@@ -15,7 +15,7 @@ const PayoutSchema = mongoose.Schema({
  	against_avg_rep: Number,
  	prob: Number,
 	sector: String,
-	result: Boolean
+	result: String
 }, {
     timestamps: true
 });

@@ -15,8 +15,13 @@ module.exports = (app) => {
     // Retrieve a single bet with betId
     app.get('/bets/:betId', bets.findOne);
 
-    // Update a bet with betId
+    // Update a bet with betId 
     app.put('/bets/:betId', asyncHandler(async (req, res, next) => {
+    const bar = await bets.update(req, res);
+    }));
+
+    // Update a bet with betId - vote
+    app.put('/vote', asyncHandler(async (req, res, next) => {
     const bar = await bets.update(req, res);
     }));
 

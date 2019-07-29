@@ -6,11 +6,10 @@ const moment = require('moment');
 const Bet = require('../models/bet.model.js');
 const Payout = require('../models/payout.model.js');
 
-
 exports.init = async function(req, res) {
 
 		//const now = moment().format('YYYY-MM-DD');
-		const now = '2019-07-23';
+		const now = "01-01-2019";
 
 		// for everything in database with exp date now
 		Bet.find({ date: now }, async(err, payout_bets) => {
@@ -22,7 +21,9 @@ exports.init = async function(req, res) {
 		
 			for (let bet of payout_bets) {
 
-				var id = bet['betID'];
+				var id = bet['_id'];
+				console.log(id);
+
 				if (id == -404) { 
 					bet.remove(); 
 					// console.log("removed 404 ");
@@ -45,19 +46,19 @@ exports.init = async function(req, res) {
 		        //console.log("id ->" + id);
 		        //console.log("current_price ->" + current_price);
 
-		        var params = [Number(id), Number(current_price)];
-
-		        // bet.remove();
+		        var params = [id, Number(current_price)];		        
    
 		        try {
-		            const bet_result = await sc.payout(params, res);
+		            var bet_result = await sc.payout(params, null);
 		        }
 		        catch (e) {
+		        	console.log("bet_result await sc payout")
 		        	console.error(e);
+		        	process.exit(0);
 		        }
 
 		        const payout = new Payout({
-	        		_id: Number(bet['_id']),
+	        		betId: id,
 					ticker: bet['ticker'],
 					change: Number(bet['change']),
 					target_price: Number(bet['target_price']),
@@ -70,21 +71,21 @@ exports.init = async function(req, res) {
 					sector: bet['sector'],
 					result: bet_result
 		        });
+
+		        await bet.remove();
+
     // Save bet in the database
 			    payout.save()
 			    .then(data => {
-			        res.send(data);
+			        // res.send(data);
 			    }).catch(err => {
-			        res.status(500).send({
+			    	throw err;
+			        /*res.status(500).send({
 			            message: err.message || "Some error occurred while creating the bet."
-			        });
+			        });*/
 			    });
-
-			    bet.remove();
-
-			}
-		
-
+			    
+			}		
 		});
 
 		// vote_bets = Bet.find({vote_date: now}, (err, bets) => {
@@ -96,6 +97,16 @@ exports.init = async function(req, res) {
 			// maybe display that the voting period has elapsed on frontend
 	// 	}
 
-	
-
 }
+
+// Retrieve and return all expired bets from the database.
+exports.findAll = (req, res) => {
+    Payout.find()
+    .then(payouts => {
+        res.send(payouts);
+    }).catch(err => {
+        res.status(500).send({
+            message: err.message || "Some error occurred while retrieving expired bets."
+        });
+    });
+};

@@ -12,8 +12,7 @@ function HexToInt(num) {
 
 const fetchLastBlock = async function () {
     const url = restfulUrl + '/api/v1/block/height';
-    const res = await axios.get(url);
-    // console.log(res.data.Result);
+    const res = await axios.get(url);    
     var height;
     if(res && res.data && res.data.Result) {
         height = res.data.Result;
@@ -50,19 +49,26 @@ const fetchScEventsByBlock = async function (height) {
 
 exports.syncBet = async function (current_hash) {
 
-    const height = await fetchLastBlock();
+    try { 
+    var height = await fetchLastBlock();
+    }
+    catch (e) { throw e };
     
-    const notifyList = await fetchScEventsByBlock(height);
-    
+    try {
+    var notifyList = await fetchScEventsByBlock(height);  
+    }
+    catch (e) { throw e }; 
 
     if (notifyList.length > 0) {
         for (const notify of notifyList) {
             const states = notify['States'];
+            
             const contractHash = notify['ContractAddress']; 
             // console.log("\n*** the whole notify is " + JSON.stringify(notify));
             if (contractHash == config.myContractHash) {
                 if (notify.TxHash == current_hash) {
                     const key = Ont.utils.hexstr2str(states[0]);
+
                     if (key == 'bet') {
                         // console.log(JSON.stringify(states[2][9]));
                         const bet = HexToInt(states[1]);
@@ -244,7 +250,7 @@ exports.syncHistory = async function (current_hash) {
                 if (notify.TxHash === current_hash) {
                     const key = Ont.utils.hexstr2str(states[0]);
                         if (key == 'Final result') {
-                        const result = states[1];
+                        var result = HexToInt(states[1]);
                         switch (result) {
                             case -1: result = 'Incorrect';
                             case 0: result = 'No price change';

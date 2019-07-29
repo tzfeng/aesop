@@ -42,10 +42,12 @@ app.get('/', (req, res) => {
 
 require('./app/routes/bet.routes.js')(app);
 
+require('./app/routes/scrape.routes.js')(app);
+
 // listen for requests
 app.listen(3000, () => {
     console.log("Server is listening on port 3000");
-    // setInterval(Payout.init, 3000);
+    setInterval(Payout.init, 20000);
 });
 
 /*

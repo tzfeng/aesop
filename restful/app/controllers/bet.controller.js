@@ -2,28 +2,40 @@ const Bet = require('../models/bet.model.js');
 const sc = require('../sc/sc.js');
 const scrape = require('../scrape/scraper.ts');
 
-// const sync = require('../../sync/sync_block.js');
+const sync_block = require('../sync/sync_block.js');
 // const sc = require('../../node_modules/ontology-ts-sdk/')
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 // Create and Save a new bet
 exports.create = async function(req, res) {
 
-	// Validate request
-    if(!req.body.address) {
+    // Validate request
+    /*if(!req.body.address) {
         return res.status(400).send({
             message: "bet add can not be empty"
-        });
-    }
+        }); 
+    }*/
 
-    // scrape price
-    let init_price1 = -1;
-    try { init_price1 = 11; // await scrape.scrapePrice("AAPL");
-    //console.log(init_price1);
-    }
-    catch (error) {
-        return res.status(400).send("scraper died");
-    }
+    await sleep(3000);
 
+    const txn = req.body.txn;
+    console.log(txn);
+
+    // sync bet
+    try {
+            var val = await sync_block.syncBet(txn);
+            console.log("val ? " + JSON.stringify(val));
+            //return val;
+        } 
+    catch (e) {
+        console.log(e);
+        console.log("error: sync_block syncBet; exiting");
+        process.exit();
+    }
+    
     // scrape sector
     let sect1 = "unrendered";
     try { sect1 = "strings"; // await scrape.scrapeSect("AAPL");
@@ -32,18 +44,6 @@ exports.create = async function(req, res) {
     catch (error) {
         return res.status(400).send("scraper died");
     }
-    
-    // SC
-       const params = [ req.body.address,
-          req.body.amount_staked,
-          req.body.ticker,
-          req.body.sign,
-          req.body.margin,
-          req.body.date,
-          init_price1];
-   
-    let val = await sc.create_bet(params, null);
-    console.log(JSON.stringify(val));
 
     // Create a bet
     const bet = new Bet({
@@ -71,7 +71,7 @@ exports.create = async function(req, res) {
         });
     });
 
-};
+}
 
 // Retrieve and return all bets from the database.
 exports.findAll = (req, res) => {
@@ -110,21 +110,38 @@ exports.findOne = (req, res) => {
 // Update a bet identified by the betId in the request
 exports.update = async function(req, res) {
     // Validate Request
-    if(!req.body.betId) {
+
+    await sleep(3000);
+
+    const txn = req.body.txn;
+    console.log(txn);
+
+    /*if(!req.body.betId) {
         return res.status(400).send({
             message: "bet address can not be empty"
         });
+    }*/
+
+    try {
+    var val = await sync_block.syncVote(txn);
+    console.log("val ? " + JSON.stringify(val));
+    return val;
+    } 
+    catch (e) {
+        console.log(e);
+        console.log("error: sync_block syncVote; exiting");
+        process.exit();
     }
 
 
-    const params = [ req.body.betId,
-    req.body.address,
-    req.body.amount_staked,
-    req.body.for_against ];
+    // const params = [ req.body.betId,
+    // req.body.address,
+    // req.body.amount_staked,
+    // req.body.for_against ];
 
-    let val = await sc.vote(params, null);
-    console.log(JSON.stringify(val));
-    console.log(req.params.betId);
+    // let val = await sc.vote(params, null);
+    // console.log(JSON.stringify(val));
+    // console.log(req.params.betId);
 
     // Find bet and update it with the request body
     Bet.findByIdAndUpdate(req.params.betId, {
@@ -151,11 +168,11 @@ exports.update = async function(req, res) {
             message: "Error updating bet with id " + req.params.betId
         });
     });
-};
+}
 
 // Delete a bet with the specified betId in the request
 exports.delete = (req, res) => {
-    bet.findByIdAndRemove(req.params.betId)
+    Bet.findByIdAndRemove(req.params.betId)
     .then(bet => {
         if(!bet) {
             return res.status(404).send({
