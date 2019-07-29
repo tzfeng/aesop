@@ -219,9 +219,9 @@ exports.syncRecord = async function (current_hash) {
                         const results = states[2];
                         const net = states[3];
                         for (let i = 0; i < bets.length; i++) {
-                            bets[i] = parseInt(bets[i], 16);
-                            results[i] = parseInt(results[i], 16);
-                            net[i] = parseInt(net[i], 16);
+                            bets[i] = HexToInt(bets[i]);
+                            results[i] = HexToInt(results[i]);
+                            net[i] = HexToInt(net[i]);
                         }
                         const val = [bets, results, net];
                         return val; 
