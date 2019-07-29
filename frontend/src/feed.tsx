@@ -1,76 +1,79 @@
-import { client } from 'ontology-dapi';
+/* tslint:disable */
+export {};
+import 'bootstrap/dist/css/bootstrap.min.css';
 import * as React from 'react';
-import * as ReactDOM from 'react-dom';
-import { /*Field,*/ Form } from 'react-final-form';
 import { RouterProps } from 'react-router';
-import { BrowserRouter, Route } from 'react-router-dom';
 import './button.css';
-import { viewBet } from './viewBet';
-import { Vote } from './vote';
+import './index.css';
+import { BetPopup } from './bet-popup';
+import { FeedBox } from './feed-box';
+import './feed-box.css';
 
-const App: React.SFC<{}> = () => (
-  <BrowserRouter>
-    <>
-      <Route path="/vote" exact={true} component={Vote} />
-      <Route path="/viewBet" exact={true} component={viewBet} />
-    </>
-  </BrowserRouter>
-);
-
-ReactDOM.render(<App />, document.getElementById('root') as HTMLElement);
+interface FeedState {
+  content: any;
+}
 
 /* thing */
-export const Feed: React.SFC<RouterProps> = (props) => {
-  function onVote() {
-    props.history.push('/vote');
+export class Feed extends React.Component<RouterProps, FeedState> {
+
+  state: FeedState = {
+    content: <div>unrendered</div>
+  };
+
+  onBack() {
+    this.props.history.goBack();
   }
 
-  async function onSend(values: any) {
-    const to: string = values.recipient;
-    const amount: number = Number(values.amount);
-    const asset: 'ONT' | 'ONG' = values.asset;
+  async componentWillMount() {
 
-    try {
-      const result = await client.api.asset.send({ to, asset, amount });
-      alert('onSend finished, txHash:' + result);
-    } catch (e) {
-      alert('onSend canceled');
-      // tslint:disable-next-line:no-console
-      console.log('onSend error:', e);
+    let resp = await fetch('http://localhost:3000/bets', {
+                method: 'GET',
+                headers: new Headers()});
+    let data = await resp.json();
+
+    let all = []
+
+   for (let bet of data) {
+
+      let x = <li key={bet['_id']}><FeedBox against_rep={bet['against_avg_rep']}
+      against_staked={bet['against_staked']}
+      change={bet['change']}
+      createdAt={bet['createdAt']}
+      for_rep={bet['for_avg_rep']}
+      for_staked={bet['for_staked']}
+      prob={bet['prob']}
+      sector={bet['sector']}
+      target_price={bet['target_price']}
+      ticker={bet['ticker']}
+      id={bet['_id']} /></li>;
+
+      all.push(x);    
     }
+    
+    this.setState({
+            content : all       
+    })
+    
   }
 
-  function onBack() {
-    props.history.goBack();
+  clickToBet(value: number) {
+    const url = '/bet/' + value.toString();
+    this.props.history.push(url);
   }
 
-  function clickBet() {
-    props.history.push('/viewBet');
-  }
-
+  render() {
   return (
-    <div>
-      <h2>List of Active Bets</h2>
-      <button onClick={clickBet} className="def-button">lookit this bet</button>
-      <br></br>
-      <br></br>
-      <button onClick={clickBet} className="def-button">look ~ another ~ bet</button>
-      <Form
-        initialValues={{
-          amount: '10',
-          asset: 'ONT',
-          recipient: 'AXCyYV4DNmmsqZn9qJEqHqpacVxcr7X7ns'
-        }}
-        onSubmit={onSend}
-        render={({ handleSubmit }) => (
-          <form onSubmit={handleSubmit}>
-            <h4> ^ View attributes of this bet</h4>
-            <button onClick={onVote} className="def-button">Vote on this bet</button>
-          </form>
-        )}
-      />
-      <br></br>
-      <button onClick={onBack} className="back-button">Back</button>
+    <div className="feed-container">
+      <h5>Active Insights</h5>
+      <div><ul>{this.state.content}</ul></div>   
+      <BetPopup betId="1"/>
+      <br />
+      <button onClick={this.onBack} className="back-button">&lt;</button>
+      <br />
+      <br />
+      <br />
     </div>
   );
+  }
 };
+// <button onClick={() => clickVote(1)} className="bet-button">bet 1</button>

@@ -1,47 +1,116 @@
-.def-button {
-  background-color: #A9CCE3; /* Green */
+ul {
+list-style-type: none;
+}
+
+.feed-container h5 {
+  font-family: AvenirNextCondensed-Bold;
+  font-size:40pt;
+  color: black;
+  text-transform: none;
+}
+
+input:focus{
+    outline: none;   
+}
+
+button:focus { outline: none; }
+/*
+.Nav {
+  position: fixed;
+  bottom: 0;
+}*/
+
+.container {
+  width:500px;
+  align-content: center;
+}
+
+.container a:link, a:visited {
+  color: #6699CC;
+}
+
+.container a:hover, a:active {
+  color: #4C787E;
+}
+
+.container a:hover {
+  text-decoration: line-through;
+}
+
+.createBet-button, .createBet-button:active, .createBet-button:visited, .createBet-button:hover {
+  color: #ffffff;
+  font: 16pt OpenSans;
+  width: 126pt;
+  height: 48pt;
+  font-weight:bold;
+  background-color: rgb(81, 65, 246);
+  border-radius: 5px;
   border: none;
+}
+
+.createBet-button:hover {
+}
+
+
+.back-button, .back-button:active, .back-button:visited, .back-button:hover {
+  background-color: transparent; 
+  border: none;
+  color: black;
+  font-family: monospace;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 31px;
+  outline: none;
+}
+
+.back-button:hover {
+  font-color: #555555;
+  font-weight:bold;
+}
+
+
+.def-button, .def-button button, .def-button:active, .def-button:visited {
+  background-color: gray; 
   color: white;
   padding: 10px;
-  width:200px;
   text-align: center;
   text-decoration: none;
   display: inline-block;
   font-size: 13px;
   font-family: monospace;
-  border-radius: 8px;
+  border-radius: 30px;
+  outline: none;
+  margin: 0 1px 0 0;
+  flex: 1 0 auto;
 }
 
 .def-button:hover {
-  background-color: #888888; /* Green */
-  font-size: 18px;
+  background-color: #888888;
 }
 
-.def-button button {
-  background-color: #e0e0e0;
-  border: 0;
-  font-size: 1.5rem;
-  margin: 0 1px 0 0;
-  flex: 1 0 auto;
-  padding: 0;
+.def-button button:focus {
+  outline:none;
 }
 
-.back-button {
-  background-color: #ef6c58; /* Green */
+/*
+.bet-button, .bet-button:link, .bet-button:visited, .bet-button:active, .bet-button:hover {
+  background-color: white;
   border: none;
-  color: black;
-  font-family: monospace;
+  color: #A9CCE3;
   padding: 10px;
+  width:400px;
+  height: 150px;
   text-align: center;
   text-decoration: none;
   display: inline-block;
-  font-size: 11px;
-  border-radius: 20px;
+  font-size: 20px;
+  font-family: verdana;
+  outline: none;
 }
 
-.back-button:hover {
-  font-color: white;
-  font-weight:bold;
-  font-kerning: 3px;
-  font-size:13px;
-}
+.bet-button:hover {
+  background-color: #dddddd;
+  color: white;
+}*/
+

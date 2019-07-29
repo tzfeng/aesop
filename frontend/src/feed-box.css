@@ -1,0 +1,50 @@
+.feed-container {
+	display:flex; 
+	flex-direction:column;
+}
+
+.feed-box {
+  margin-top: 20px;
+  position:relative;
+  background-color: #fff;
+  border-radius: 5pt;
+  width: 320pt; /*410px;*/
+  height: 168pt; /* 220px; */
+  overflow:hidden;
+  padding-top: 15pt;
+  padding-left: 28pt;
+  border: none;
+  font-color: gray;
+  font-size: 11px;
+}
+
+.feed-box h2 {
+  font-size:26pt;
+  font-family: OpenSans;
+  text-align: left;
+  font-color: #000000;
+  text-transform: uppercase;
+  /*margin-left: 38pt;*/
+}
+
+.feed-box h3 {
+  font-size:18pt;
+  font-family: OpenSans-Bold;
+  text-align: left;
+  font-color: #000000;
+  text-transform: none;
+  /*margin-left: 38pt;*/
+}
+
+.feed-box h4 {
+  font-family: OpenSans-Bold;
+  text-align: left;
+  font-color: #000000;
+  font-size:18pt;
+}
+
+.feed-box button, .create-bet-button {
+  background-color: transparent;
+  font-color: white;
+  text-transform: uppercase;
+}

@@ -1,40 +1,101 @@
+/* tslint:disable */
+export {};
+import arrayMutators from 'final-form-arrays';
 import { client } from 'ontology-dapi';
 import * as React from 'react';
-import * as ReactDOM from 'react-dom';
 import { Field, Form } from 'react-final-form';
 import { RouterProps } from 'react-router';
-import { BrowserRouter, Route } from 'react-router-dom';
 import './button.css';
-import { Vote } from './vote';
-
-const App: React.SFC<{}> = () => (
-  <BrowserRouter>
-    <>
-      <Route path="/vote" exact={true} component={Vote} />
-    </>
-  </BrowserRouter>
-);
-
-ReactDOM.render(<App />, document.getElementById('root') as HTMLElement);
+import { convertValue, CONST, CONTRACT_HASH } from './utils';
 
 export const Bet: React.SFC<RouterProps> = (props) => {
-  function onVote() {
-    props.history.push('/vote');
-  }
+  
+  async function onCallBackend(values: any) {
 
-  async function onSend(values: any) {
-    const to: string = values.recipient;
-    const amount: number = Number(values.amount);
-    const asset: 'ONT' | 'ONG' = values.asset;
+    const scriptHash: string = CONTRACT_HASH;
+    const operation: string = 'create_bet';
+    const gasPrice: number = 500;
+    const gasLimit: number = 100000000;
+    const requireIdentity: boolean = false;
+
+    const account = await client.api.asset.getAccount();
+
+    const url = 'http://localhost:3000/scrapes';
+
+    // get price from backend
+    var json_arr: any = {};
+    json_arr["ticker"] = values.ticker;
+    var json_string = JSON.stringify(json_arr);
+    console.log(json_string);
 
     try {
-      const result = await client.api.asset.send({ to, asset, amount });
-      alert('onSend finished, txHash:' + result);
-    } catch (e) {
-      alert('onSend canceled');
-      // tslint:disable-next-line:no-console
-      console.log('onSend error:', e);
+    var resp = await fetch(url, {
+                method: 'PUT',
+                headers: new Headers({'content-type': 'application/json'}),
+                body:  json_string }); 
+    var init_price = await resp.json();
+    console.log("init_price " + JSON.stringify(init_price));
     }
+    catch (e) {
+      console.log(e);
+    }
+
+    console.log("init_price " + JSON.stringify(init_price));
+
+    const parameters: any[] = [
+          { type: 'String', value: account },
+          { type: 'Integer', value: Number(values.amount_staked)*CONST },
+          { type: 'String', value: values.ticker },
+          { type: 'Integer', value: Number(values.sign) },
+          { type: 'Integer', value: Number(values.margin) },
+          { type: 'String', value: values.date },
+          { type: 'Integer', value: Number(init_price)*CONST },
+          ];
+    const args = parameters.map((raw) => ({ type: raw.type, value: convertValue(raw.value, raw.type) }));
+    
+    console.log(JSON.stringify(args));
+    try {
+      var result = await client.api.smartContract.invoke({
+        scriptHash,
+        operation,
+        args,
+        gasPrice,
+        gasLimit,
+        requireIdentity
+      });
+
+      // tslint:disable-next-line:no-console
+      console.log('onScCall finished, result:' + JSON.stringify(result));
+
+        var txn = result['transaction'];
+
+        var json_arr: any = {};
+        json_arr["txn"] = txn;
+        var json_string = JSON.stringify(json_arr);
+        console.log(json_string);
+
+        // calls backend
+        try {
+        var resp = await fetch('http://localhost:3000/bets', {
+                    method: 'POST',
+                    headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+                    body:  json_string }); 
+        var data = await resp.json();
+        console.log(JSON.stringify(data));
+        }
+        catch (e) {
+          console.log(e);
+        }
+
+    } catch (e) {
+      alert('onScCall cancelled');
+      // tslint:disable-next-line:no-console
+      console.log('onScCall error:', e);
+    } 
+
   }
 
   function onBack() {
@@ -43,38 +104,40 @@ export const Bet: React.SFC<RouterProps> = (props) => {
 
   return (
     <div>
-      <h2>Initialising a bet</h2>
-      <Form
+      <h2>Create a Bet</h2>
+        <Form
         initialValues={{
-          amount: '10',
-          asset: 'ONT',
-          recipient: 'AXCyYV4DNmmsqZn9qJEqHqpacVxcr7X7ns'
+          amount_staked: 1,
+          ticker: "FB",
+          margin: 1,
+          sign: 1,
+          date: "01-01-2019"
         }}
-        onSubmit={onSend}
-        render={({ handleSubmit }) => (
+        mutators={Object.assign({}, arrayMutators) as any}
+        onSubmit={onCallBackend}
+        render={({
+          form: {
+            mutators: { push, pop }
+          },
+          handleSubmit
+        }) => (
           <form onSubmit={handleSubmit}>
-            <h4>What stock would you like to bet on?</h4>
-            <Field name="bet_stock" component="input" />
-
-            <h4>How much do you want to bet?</h4>
-            <Field name="bet_amount" component="input" type="number" />
-
-            <h4>Betting value changes by..</h4>
-            <Field name="asset" component="select">
-              <option value="-ve">-ve</option>
-              <option value="+ve">+ve</option>
-            </Field>
-
-            <br />
-            <br />
-            <button type="submit">Make bet!</button>
+          <h4>Amount staked</h4>
+          <Field name="amount_staked" component="input" />
+          <h4>Ticker</h4>
+          <Field name="ticker" component="input" />
+          <h4>Margin</h4>
+          <Field name="margin" component="input" />
+          <h4>Sign</h4>
+          <Field name="sign" component="input" />
+          <h4>Date</h4>
+          <Field name="date" component="input" />
+          <br />
+          <button className="def-button" type="submit">Submit</button>
           </form>
         )}
       />
-      <hr />
-      <button onClick={onBack} className="back-button">Back</button>
-      <button onClick={onVote} className="def-button">Vote on existing bets</button>
-      <hr />
+      <button onClick={onBack} className="back-button">&lt;</button>
     </div>
   );
 };

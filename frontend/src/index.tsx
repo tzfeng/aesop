@@ -1,29 +1,39 @@
+/* tslint:disable */
+export {};
 import * as Ontology from 'ontology-dapi';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { BrowserRouter, Route } from 'react-router-dom';
-/*import { Asset } from './asset';*/
+import { RouteComponentProps } from 'react-router-dom';
 import { Bet } from './bet';
+import { CreateUser } from './createUser';
 import { Feed } from './feed';
-import { Home } from './home';
 import { Profile } from './profile';
-/*import { Message } from './message';
-import { Network } from './network';
-import { Oep4 } from './oep4';
-import { Provider } from './provider';
-import { SmartContract } from './smartContract';*/
-import { viewBet } from './viewBet';
-import { Vote } from './vote';
+import { ViewBet } from './viewBet';
+import { VoteBet } from './voteBet';
+
+interface TParams {
+  id: string;
+}
+
+function onViewBet({ match }: RouteComponentProps<TParams>) {
+  return <ViewBet betId = {match.params.id} />;
+}
+
+function onVote({ match }: RouteComponentProps<TParams>) {
+  return <VoteBet betId = {match.params.id} />;
+}
 
 const App: React.SFC<{}> = () => (
   <BrowserRouter>
     <>
-      <Route path="/" exact={true} component={Home} />
+      <Route path="/vote" exact={true} component={VoteBet} />
+      <Route path="/" exact={true} component={Feed} />
+      <Route path="/createUser" exact={true} component={CreateUser} />
       <Route path="/bet" exact={true} component={Bet} />
-      <Route path="/feed" exact={true} component={Feed} />
-      <Route path="/vote" exact={true} component={Vote} />
+      <Route path="/bet/:id" component={onViewBet} />
+      <Route path="/vote/:id" component={onVote} />
       <Route path="/profile" exact={true} component={Profile} />
-      <Route path="/viewBet" exact={true} component={viewBet} />
     </>
   </BrowserRouter>
 );
