@@ -1,4 +1,4 @@
-/*const Record = require('../models/record.model.js');
+const Record = require('../models/record.model.js');
 const sc = require('../sc/sc.js');
 
 exports.create = async function(req, res) {
@@ -54,17 +54,29 @@ exports.findOne = (req, res) => {
 };
 
 exports.update = async function(req, res) {
-	    // Validate Request
-    if(!req.body.address) {
+    // Validate Request
+
+    await sleep(3000);
+
+    const txn = req.body.txn;
+    console.log(txn);
+
+    /*if(!req.body.betId) {
         return res.status(400).send({
             message: "bet address can not be empty"
         });
+    }*/
+
+    try {
+    var val = await sync_block.syncRecord(txn);
+    console.log("val ? " + JSON.stringify(val));
+    return val;
+    } 
+    catch (e) {
+        console.log(e);
+        console.log("error: sync_block syncRecord; exiting");
+        process.exit();
     }
-
-    const params = [ req.body.address ];
-
-    let val = await sc.record(params, null);
-    console.log(JSON.stringify(val));
 
     // Find bet and update it with the request body
     Payout.findByIdAndUpdate(req.params.address, {
@@ -89,4 +101,4 @@ exports.update = async function(req, res) {
             message: "record updating bet with address " + req.params.address
         });
     });
-}*/
+}
