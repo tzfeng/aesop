@@ -41,34 +41,6 @@ token_owner = 'ANXE3XovCwBH1ckQnPc6vKYiTwRXyrVToD'
 def Main(operation, args):
     if operation == 'init':
         return init()
-    
-    if operation == 'add_ong':
-        if len(args) != 2:
-            return False
-        address = args[0]
-        amount = args[1]
-        return add_ong(address, amount)
-
-    if operation == 'subtract_ong':
-        if len(args) != 2:
-            return False
-        address = args[0]
-        amount = args[1]
-        return subtract_ong(address, amount)
-    
-    if operation == 'add_bank':
-        if len(args) != 2:
-            return False
-        address = args[0]
-        amount = args[1]
-        return add_bank(address, amount)
-
-    if operation == 'subtract_bank':
-        if len(args) != 2:
-            return False
-        address = args[0]
-        amount = args[1]
-        return subtract_bank(address, amount)
         
     if operation == 'aes_supply':
         return aes_supply()
