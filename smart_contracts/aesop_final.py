@@ -15,6 +15,7 @@ USERKEY = 'Users'  # list of all users
 AESKEY = 'AES' # AES supply key
 ONGKEY = 'ONG' # ONG supply key
 ABKEY = 'AB'  # active bets
+UNKEY = 'UN' # usernames
 FM_PREFIX = 'FM'  # for map
 AM_PREFIX = 'AM'  # against map
 FL_PREFIX = 'FL'  # for list
@@ -26,6 +27,7 @@ RC_PREFIX = 'RC'  # user's track record
 PT_PREFIX = 'PT' # user's profit per bet
 BT_PREFIX = 'BT' # bet prefix for track record storage
 AB_PREFIX = 'AB' # bet prefix for active bets
+PI_PREFIX = 'PI' # profile information
 
 ctx = GetContext()
 AES_FACTOR = 100000000
@@ -49,10 +51,12 @@ def Main(operation, args):
         return ong_supply()
 
     if operation == 'create_user':
-        if len(args) != 1:
+        if len(args) != 3:
             return False
         address = args[0]
-        return create_user(address)
+        username = args[1]
+        bio = args[2]
+        return create_user(address, username, bio)
 
     if operation == 'purchase_bank':
         if len(args) != 2:
@@ -151,6 +155,12 @@ def Main(operation, args):
         
     if operation == 'active_bets':
         return active_bets()
+        
+    if operation == 'profile':
+        if len(args) != 1:
+            return False
+        address = args[0]
+        return profile(address)
 
 
 # initialize all necessary data structures to be stored onchain
@@ -381,7 +391,7 @@ def ong_supply():
 
 
 # create a user and give 100 free rep. Store corresponding info onchain
-def create_user(address):
+def create_user(address, username, bio):
     byte_address = Base58ToAddress(address)
     # only the address can invoke the method
     assert (CheckWitness(byte_address))
@@ -399,8 +409,33 @@ def create_user(address):
     if len(byte_address) != 20:
         Notify(['Invalid address'])
         return False
+        
+    if len(bio) > 100:
+        Notify(['Bio length exceeds 100 characters'])
+
+    un_info = Get(ctx, UNKEY)
+    if un_info:
+        usernames = Deserialize(un_info)
+    else:
+        usernames = []
+    
+    if username in usernames:
+        Notify(['Username already exists'])
+        return False
 
     else:
+        # add username to list of existing usernames
+        usernames.append(username)
+        un_info = Serialize(usernames)
+        Put(ctx, UNKEY, usernames)
+        
+        # create profile info list
+        profile = []
+        profile.append(username)
+        profile.append(bio)
+        profile_info = Serialize(profile)
+        Put(ctx, concatkey(address, PI_PREFIX), profile_info)
+        
         # check if rep map has been created. if not, initialize it
         rep_info = Get(ctx, REPKEY)
         if rep_info:
@@ -470,7 +505,7 @@ def purchase_bank(address, amount):
 
     if address not in all_users:
         Notify(['not a registered user'])
-        create_user(address)
+        return False
 
     # if the user has been created, that means the bank map exists. update the user's bank and wallet
     else:
@@ -518,7 +553,7 @@ def redeem_bank(address, amount):
 
     if address not in all_users:
         Notify(['not a registered user'])
-        create_user(address)
+        return False
 
     # if the user has been created, that means the bank map exists. update the user's bank and wallet
     else:
@@ -1440,3 +1475,35 @@ def active_bets():
         active_bets = Deserialize(ab_info)
         Notify([active_bets])
         return True
+        
+def profile(address):
+    byte_address = Base58ToAddress(address)
+    # check if user list exists
+    user_info = Get(ctx, USERKEY)
+    if user_info:
+        all_users = Deserialize(user_info)
+    else:
+        Notify(['User list is empty'])
+        return False
+
+    # check if user has been created
+    if address not in all_users:
+        Notify(['User not created'])
+        return False
+
+    # check if address is valid
+    if len(byte_address) != 20:
+        Notify(['Invalid address'])
+        return False
+        
+    profile_info = Get(ctx, concatkey(address, PI_PREFIX))
+    if profile_info:
+        profile = Deserialize(profile_info)
+    else:
+        Notify(['The profile does not exist'])
+        return False
+        
+    Notify(['profile', profile])
+    return profile
+    
+    
